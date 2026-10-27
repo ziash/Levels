@@ -6,7 +6,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 written** — expected-range indicator, waiting for the owner's check in TradingView |
+| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)) |
 | Specification | [docs/spec.md](docs/spec.md) — the single source of truth (idea, method, phases, open questions, history) |
 | Indicator | [pine/Levels.pine](pine/Levels.pine) — Pine Script v6 |
 | Runs on | TradingView in the browser (Ubuntu or Windows); the program (from Phase 2) on Ubuntu, .NET 10 |
@@ -17,7 +17,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Repo and spec | Done |
-| 1 | Expected range (Pine) | Written; owner's check in TradingView |
+| 1 | Expected range (Pine) | Done 28-Oct-2026 |
 | 2 | Options data check | — |
 | 3 | Gamma levels + morning line | — |
 | 4 | Morning report (JSON + HTML, timer) | — |

@@ -4,8 +4,8 @@
 
 | Item | Value |
 |---|---|
-| Status | **Phase 0 done** (repo and this spec); **Phase 1 written, waiting for the owner's check in TradingView** (§10) |
-| Document version | v1.0 (27-Oct-2026) — history in §16 |
+| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. Next: Phase 2, on the owner's go (§10) |
+| Document version | v1.1 (28-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
 | Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (private) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
@@ -53,11 +53,11 @@ Deribit, US options source ──► levels (C#) ──► morning line ── p
 | USTEC | `ICMARKETS:USTEC` / `PEPPERSTONE:NAS100` | VXN | NDX / QQQ |
 | XAUUSD | `…:XAUUSD` | GVZ (gold ETF volatility) | GLD |
 | XTIUSD | `ICMARKETS:XTIUSD` / `PEPPERSTONE:SPOTCRUDE` | OVX (oil ETF volatility) | USO |
-| BTCUSD, ETHUSD | `…:BTCUSD`, `…:ETHUSD` | Deribit DVOL (to check, §13) | Deribit (free, real time; checked 27-Oct-2026: 876 BTC options) |
+| BTCUSD, ETHUSD | `…:BTCUSD`, `…:ETHUSD` | Deribit DVOL (`DERIBIT:DVOL`, found 28-Oct) | Deribit (free, real time; checked 27-Oct-2026: 876 BTC options) |
 | XAGUSD | `…:XAGUSD` | none | SLV |
 | Forex (AUDJPY, EURGBP, EURUSD, GBPJPY, USDJPY, GBPUSD), DE40, XBRUSD, XNGUSD, XPTUSD, SOLUSD | broker symbol | none → historical (§5.3) | none (no free options open interest) |
 
-The exact TradingView names of the volatility indices are inputs of the indicator and are checked in Phase 1 (§13).
+The TradingView names of the volatility indices are inputs of the indicator. Checked in Phase 1 (§5.6): `CBOE:VIX1D`, `CBOE:VXN`, `CBOE:GVZ` and `DERIBIT:DVOL` are found on the owner's free plan; `TVC:VIX`, `CBOE:OVX` and `DERIBIT:ETHDVOL` not yet tried (§13).
 
 ## 5. Expected range (Phase 1)
 
@@ -108,6 +108,25 @@ For symbols without a volatility index (or when the index is missing): the **Yan
 ### 5.5 The table
 
 Top right, on intraday charts: the source used (`implied CBOE:VIX1D 14.8` or `historical 20 d`), σ in percent and points, today's ±1σ band, where price is now in σ from the open (`+0.7σ`), and the other source's σ for comparison.
+
+### 5.6 Phase 1 check (28-Oct-2026)
+
+The owner's check in TradingView (free plan), 15-minute charts, 27-Oct-2026 about 21:00 UTC:
+
+| Chart | Feed | Source found | Implied σ | Historical σ (20 d) | Implied ÷ historical |
+|---|---|---|---|---|---|
+| US500 | Pepperstone | `CBOE:VIX1D` 10.50 | 0.66 % | 0.67 % | 0.99 |
+| USTEC | IC Markets | `CBOE:VXN` 26.40 | 1.66 % | 1.13 % | 1.47 |
+| XAUUSD | OANDA | `CBOE:GVZ` 23.55 | 1.48 % | 1.03 % | 1.44 |
+| EURUSD | OANDA | none listed → historical | — | 0.41 % | — |
+| BTCUSD | Bitstamp | `DERIBIT:DVOL` 38.56 (`/365`) | 2.02 % | 1.67 % | 1.21 |
+
+- Compiled at the first paste. Numbers checked by hand: US500 σ = 10.50 ÷ 100 ÷ √252 = 0.66 % = 50.8 points on the 7,682.3 open, ±1σ 7,631.7–7,733.3, "Now +0.8σ" = ln(7,721.9 ÷ 7,682.3) ÷ 0.0066; BTC σ = 38.56 ÷ 100 ÷ √365 = 2.02 % (the `/365` of the list line works).
+- The day starts where intended: 22:00 UTC for Pepperstone US500 (18:00 New York), 21:00 UTC for OANDA forex (17:00 New York rollover), 00:00 UTC for Bitstamp BTC. The bar where a day starts is not drawn (the gap between days).
+- XAUUSD, EURUSD and BTCUSD were checked on OANDA and Bitstamp, not on the broker feeds. The method does not depend on the feed, but for trading chart the broker's symbol (§3): its prices and day start can differ a little.
+- **The 30-day indices give wider bands than the candles.** VXN and GVZ give σ about 45 % above the 20-day historical σ; VIX1D, which prices only the next day, matches it. Likely reasons: the horizon (30 days include events — the big-tech earnings of late October for the Nasdaq 100) and implied volatility normally sitting above realised (the premium option sellers are paid). Not changed in Phase 1; Phase 5 measures the hit rates and decides (§13 question 7).
+- Days seen on the charts: US500 14-Oct broke −1σ after the 13:30 UTC cash open and stalled at −2σ (wicks about 10 points through, 15-minute closes held), the next day's band 30 % wider as VIX1D rose; US500 27-Oct high stopped at +1σ twice. USTEC 16-Oct and 22-Oct fell to about −2σ. XAUUSD 22-Oct closed near −2σ. BTCUSD 22-Oct fell to −2σ and bounced; 24-Oct's low touched −1σ. One-off examples, not statistics — that is Phase 5.
+- Cosmetic: the status line shows the inputs "Auto 20 252" even where a list line sets `/365`.
 
 ## 6. Gamma and open interest (Phases 2–3, outline)
 
@@ -160,11 +179,11 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | Phase | Name | Content | Acceptance | Status |
 |---|---|---|---|---|
 | 0 | Repo and spec | This document, README, CLAUDE.md | Owner reviews | **Done 27-Oct-2026** |
-| 1 | Expected range | `pine/Levels.pine`: §5 — implied or historical σ, ±1σ/±2σ lines per day, table | Owner adds it in TradingView on US500, USTEC, XAUUSD, EURUSD, BTCUSD; it compiles; the table names the source; the volatility symbols of §4 are found or the list is corrected; one day's numbers checked by hand | **Written 27-Oct-2026**, waiting for the owner's check |
+| 1 | Expected range | `pine/Levels.pine`: §5 — implied or historical σ, ±1σ/±2σ lines per day, table | Owner adds it in TradingView on US500, USTEC, XAUUSD, EURUSD, BTCUSD; it compiles; the table names the source; the volatility symbols of §4 are found or the list is corrected; one day's numbers checked by hand | **Done 28-Oct-2026** — results §5.6 |
 | 2 | Options data check | `levels fetch`: download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print implied move from the straddle, top OI strikes, put/call balance | Snapshots saved; straddle implied move within reason of Phase 1's implied σ; US source chosen and recorded (§13) | — |
 | 3 | Gamma levels | Gamma by strike, TCS/TPS/TGS, flip, front and next expiry; the morning line (§7); the indicator's paste box and strike lines with the live ratio | Calculations match a hand-worked example in the tests; lines appear at the right US500 prices | — |
 | 4 | Morning report | JSON + HTML page per day in `~/levels/reports/`; systemd timer before the London and New York opens; layout possibly designed with Claude Design | Report on screen before the open for a week | — |
-| 5 | Calibration | From history: how often each symbol closed inside ±1σ and touched ±2σ; per-symbol multiplier; wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
+| 5 | Calibration | From history, per symbol: how often the day closed inside ±1σ; how often ±1σ and ±2σ were touched; how often a ±1σ break went on to reach ±2σ; how often ±2σ held on closes. Implied vs historical σ and a per-symbol multiplier for the 30-day indices (§5.6, §13 question 7); wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
 | 6 | Alerts | TradingView alerts when price reaches ±1σ, ±2σ or a strike level | Alert fires on a test | — |
 | 7 | Intraday crypto gamma | Deribit gamma levels refreshed during the day | Levels update without a restart | — |
 | 8 | TM link (optional) | TM reads the day's σ for its hedge distance or a warning — built in the Trader repo under Trader's rules, on the owner's go | Agreed in Trader's TM document | — |
@@ -186,12 +205,13 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 
 | # | Question | Needed for |
 |---|---|---|
-| 1 | Exact TradingView names, and data available on the owner's plan, for VIX1D, VIX, VXN, GVZ, OVX, Deribit DVOL (BTC and ETH), and a DAX volatility index (VDAX / VSTOXX) | Phase 1 |
-| 2 | TradingView plan: indicators per chart, `request.security` limits, alerts | Phase 1, 6 |
+| 1 | ~~Exact TradingView names on the owner's plan~~ — mostly answered 28-Oct-2026 (§5.6): `CBOE:VIX1D`, `CBOE:VXN`, `CBOE:GVZ`, `DERIBIT:DVOL` found on the free plan. Still to try: `TVC:VIX` (fallback), `CBOE:OVX`, `DERIBIT:ETHDVOL`, a DAX volatility index (VDAX / VSTOXX) | Oil, ETH, DE40 |
+| 2 | TradingView plan (the owner's is free): the four indices of §5.6 are available; still to check: indicators per chart, alerts | Phase 6 |
 | 3 | Does IC Markets' (and Pepperstone's) TradingView connection trade on the **same cTrader account**? If not, TM does not see trades placed from TradingView | Trading from TradingView (not Levels itself) |
 | 4 | US options source: Tradier free developer account (REST, delayed — preferred), yfinance (Python, unofficial) or another; CBOE's delayed JSON refused a plain request on 27-Oct-2026 | Phase 2 |
 | 5 | Anchor of the range for US indices: the CFD's daily open (now) or the 09:30 New York cash open | Phase 5 |
 | 6 | Where the morning line goes besides the paste box (file, Telegram) | Phase 4 |
+| 7 | The 30-day indices (VXN, GVZ) give σ about 45 % above realised, VIX1D does not (§5.6). Scale them per symbol (e.g. a list line `USTEC=CBOE:VXN*0.7`), or derive USTEC from VIX1D × VXN ÷ VIX? Decided from Phase 5's hit rates | Phase 5 |
 
 ## 14. Glossary
 
@@ -213,3 +233,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 | Version | Date | Change |
 |---|---|---|
 | v1.0 | 27 Oct 2026 | First version: idea, scope, sources, Phase 1 range method (§5), outline of gamma levels and the morning line, decisions, phases 0–8, open questions. Phase 1 indicator written |
+| v1.1 | 28 Oct 2026 | Phase 1 done: owner's check on US500, USTEC, XAUUSD, EURUSD, BTCUSD (§5.6); volatility index names found (§4, §13 q1–2); 30-day indices wider than realised → open question 7; Phase 5 gets the band-touch counts. Indicator unchanged |
