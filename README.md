@@ -6,7 +6,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)) |
+| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 written** — `levels fetch`: Deribit works, SPY waits for a Tradier token |
 | Specification | [docs/spec.md](docs/spec.md) — the single source of truth (idea, method, phases, open questions, history) |
 | Indicator | [pine/Levels.pine](pine/Levels.pine) — Pine Script v6 |
 | Runs on | TradingView in the browser (Ubuntu or Windows); the program (from Phase 2) on Ubuntu, .NET 10 |
@@ -18,7 +18,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 |---|---|---|
 | 0 | Repo and spec | Done |
 | 1 | Expected range (Pine) | Done 28-Oct-2026 |
-| 2 | Options data check | — |
+| 2 | Options data check | Written; Deribit done, SPY waits for the Tradier token |
 | 3 | Gamma levels + morning line | — |
 | 4 | Morning report (JSON + HTML, timer) | — |
 | 5 | Calibration (how well the ranges held) | — |
@@ -33,3 +33,14 @@ Details and acceptance checks: [spec §10](docs/spec.md#10-phases).
 1. Open an intraday chart (M5–H1) of your broker's symbol, e.g. `ICMARKETS:US500`.
 2. Pine Editor → **Open → New indicator** → replace the template with the whole of [`pine/Levels.pine`](pine/Levels.pine) → **Save** as "Levels" → **Add to chart**.
 3. The table (top right) shows where the range came from. If it says *historical* on US500, the volatility index was not found: check the list in the settings ([spec §5.4](docs/spec.md#54-settings)).
+
+## Run the program (from Phase 2)
+
+```bash
+dotnet build
+dotnet test
+dotnet run --project src/Levels -- fetch                 # BTC, ETH (Deribit) and SPY (Tradier, needs a token)
+dotnet run --project src/Levels -- fetch --us none       # Deribit only
+```
+
+Raw snapshots go to `~/levels/snapshots/<UTC date>/`. SPY needs a free Tradier developer token in `~/.config/levels/secrets.env` (`TRADIER_TOKEN=…`, mode 600) — the program prints the steps when it is missing ([spec §6.1](docs/spec.md#61-phase-2-levels-fetch)).

@@ -4,8 +4,8 @@
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. Next: Phase 2, on the owner's go (§10) |
-| Document version | v1.1 (28-Oct-2026) — history in §16 |
+| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 written** (28-Oct-2026): `levels fetch` (§6.1) — Deribit checked live; the SPY source waits for the owner's Tradier token (§10) |
+| Document version | v1.2 (28-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
 | Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (private) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
@@ -128,13 +128,13 @@ The owner's check in TradingView (free plan), 15-minute charts, 27-Oct-2026 abou
 - Days seen on the charts: US500 14-Oct broke −1σ after the 13:30 UTC cash open and stalled at −2σ (wicks about 10 points through, 15-minute closes held), the next day's band 30 % wider as VIX1D rose; US500 27-Oct high stopped at +1σ twice. USTEC 16-Oct and 22-Oct fell to about −2σ. XAUUSD 22-Oct closed near −2σ. BTCUSD 22-Oct fell to −2σ and bounced; 24-Oct's low touched −1σ. One-off examples, not statistics — that is Phase 5.
 - Cosmetic: the status line shows the inputs "Auto 20 252" even where a list line sets `/365`.
 
-## 6. Gamma and open interest (Phases 2–3, outline)
+## 6. Gamma and open interest (Phases 2–3)
 
-To be agreed in detail when Phase 2 starts. What it computes per underlying (SPY/SPX, QQQ/NDX, GLD, SLV, USO, Deribit BTC/ETH):
+Phase 2 is specified in §6.1; Phase 3 (gamma) is still an outline, agreed in detail when it starts. What it computes per underlying (SPY/SPX, QQQ/NDX, GLD, SLV, USO, Deribit BTC/ETH):
 
 | Read | How |
 |---|---|
-| Implied move from options | at-the-money straddle of the nearest expiry × 0.85 — cross-check for §5.2 |
+| Implied move from options | at-the-money straddle of the nearest expiry → σ (§6.1) — cross-check for §5.2 |
 | Put/call open-interest balance | total put OI vs call OI |
 | Top expiries and top strikes by OI | where the most contracts are open |
 | Gamma by strike | gamma × open interest × contract size × spot² × 1 %, calls +, puts − (assumes dealers are long calls and short puts — an estimate, as in every such tool) |
@@ -142,6 +142,47 @@ To be agreed in detail when Phase 2 starts. What it computes per underlying (SPY
 | **Gamma flip** | the price where total gamma changes sign; above it dealer hedging damps moves, below it amplifies them |
 
 Open interest is published once a day (overnight), so one snapshot before the open is enough.
+
+### 6.1 Phase 2: `levels fetch`
+
+A console command on the Ubuntu laptop (`dotnet run --project src/Levels -- fetch`). It downloads one snapshot of each option chain, saves the raw answer, and prints a summary. No gamma yet (Phase 3).
+
+**Sources**
+
+| Underlying | Source | Key | What is fetched |
+|---|---|---|---|
+| BTC, ETH | Deribit public API (`www.deribit.com/api/v2/public/`), real time | none | `get_book_summary_by_currency` (every option: open interest, mark price, mark IV, underlying price) — one request per currency; `get_volatility_index_data` (latest DVOL, to compare with Phase 1) |
+| SPY | Tradier API (§13 question 4: chosen) — free developer account, sandbox data delayed 15 minutes | `TRADIER_TOKEN` in `~/.config/levels/secrets.env` (mode 600); optional `TRADIER_BASE` (default `https://sandbox.tradier.com/v1/`) | quote; expiry list; one chain (with greeks) per expiry for the next 60 days, at most 30, one request per second |
+
+Without a Tradier token the SPY part is skipped with a message saying how to get one; Deribit still runs. Strike and expiry of a Deribit option come from its name (`BTC-31OCT26-87000-C` = call, strike 87,000, expiry 31-Oct-2026 08:00 UTC); a SPY option expires 16:00 New York on its expiry date.
+
+**Saved** — the raw answers, unchanged, in `~/levels/snapshots/<yyyy-MM-dd>/` (UTC date): `deribit-BTC-<HHmmss>.json`, `deribit-ETH-…`, `tradier-SPY-<HHmmss>.json` (one file holding the quote, expiry list and every chain fetched). Later phases and tests can re-read a snapshot without going online.
+
+**Printed, per underlying**
+
+| Read | How |
+|---|---|
+| Price | Deribit index price; SPY last |
+| Put/call balance | total call OI and put OI, as % of all OI (`calls 58 % / puts 42 %`) |
+| Top expiries | the 3 expiries with the most OI, with their share |
+| Top strikes | the 5 strikes with the most call OI and the 5 with the most put OI, all expiries together |
+| Straddle σ | the nearest expiry at least 12 hours away; its strike closest to the underlying price; straddle = call + put mid price (Deribit: mark price × underlying price, in USD). σ to expiry = straddle × √(π/2) ÷ price (≈ 1.25 × straddle ÷ price — a straddle pays the average absolute move, which is 0.80σ). Then **σ per day** = σ to expiry ÷ √T, T = days to expiry (calendar days for crypto; trading sessions for SPY, holidays ignored) |
+| ATM IV σ | the same strike's implied volatility ÷ 100 ÷ √365 (crypto) or √252 (SPY) |
+| Phase 1 compare | crypto: the latest DVOL ÷ 100 ÷ √365, i.e. Phase 1's σ; SPY: read VIX1D from the chart's Levels table |
+
+The often-quoted "straddle × 0.85" is a rule of thumb for the expected move; Levels uses the exact relation so the number compares directly with Phase 1's σ.
+
+**First run (27-Oct-2026 21:19 UTC)** — Deribit, no key:
+
+| | Price | Put/call OI | Top expiries | Straddle (29-Oct, 1.45 days) | σ per day: straddle / ATM IV / Phase 1 (DVOL) | Straddle ÷ Phase 1 |
+|---|---|---|---|---|---|---|
+| BTC | 80,598 | calls 63 % / puts 37 % | 25-Dec 34 %, 30-Oct 34 %, 26-Mar 11 % | strike 80,500: 1,335 USD | 1.73 % / 1.72 % / 1.96 % (DVOL 37.49) | 0.88 |
+| ETH | 2,340 | calls 67 % / puts 33 % | 25-Dec 41 %, 30-Oct 22 %, 26-Mar 14 % | strike 2,340: 55.54 USD | 2.48 % / 2.48 % / 2.78 % (DVOL 53.11) | 0.89 |
+
+- Straddle σ and ATM IV agree to 0.01 %, so the straddle → σ relation holds.
+- The straddle is about 12 % below DVOL: DVOL looks 30 days ahead and the next days are priced quieter (the same direction as VXN and GVZ in §5.6, smaller). Input for §13 question 7.
+- BTC top strikes: calls 95,000 / 90,000 / 100,000, puts 60,000 / 75,000 / 70,000. ETH: calls 3,200 / 2,500 / 3,000, puts 2,300 / 2,000 / 2,400.
+- Snapshots: 392 KB (BTC) and 323 KB (ETH) per fetch.
 
 ## 7. The morning line (Phase 3, outline)
 
@@ -180,7 +221,7 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 |---|---|---|---|---|
 | 0 | Repo and spec | This document, README, CLAUDE.md | Owner reviews | **Done 27-Oct-2026** |
 | 1 | Expected range | `pine/Levels.pine`: §5 — implied or historical σ, ±1σ/±2σ lines per day, table | Owner adds it in TradingView on US500, USTEC, XAUUSD, EURUSD, BTCUSD; it compiles; the table names the source; the volatility symbols of §4 are found or the list is corrected; one day's numbers checked by hand | **Done 28-Oct-2026** — results §5.6 |
-| 2 | Options data check | `levels fetch`: download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print implied move from the straddle, top OI strikes, put/call balance | Snapshots saved; straddle implied move within reason of Phase 1's implied σ; US source chosen and recorded (§13) | — |
+| 2 | Options data check | `levels fetch` (§6.1): download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print the straddle σ, top OI strikes and expiries, put/call balance | Snapshots saved; straddle σ within reason of Phase 1's implied σ; US source chosen and recorded (§13) | **Written 28-Oct-2026** — Deribit done (first run §6.1, straddle ÷ DVOL 0.88–0.89); SPY waits for the owner's Tradier token |
 | 3 | Gamma levels | Gamma by strike, TCS/TPS/TGS, flip, front and next expiry; the morning line (§7); the indicator's paste box and strike lines with the live ratio | Calculations match a hand-worked example in the tests; lines appear at the right US500 prices | — |
 | 4 | Morning report | JSON + HTML page per day in `~/levels/reports/`; systemd timer before the London and New York opens; layout possibly designed with Claude Design | Report on screen before the open for a week | — |
 | 5 | Calibration | From history, per symbol: how often the day closed inside ±1σ; how often ±1σ and ±2σ were touched; how often a ±1σ break went on to reach ±2σ; how often ±2σ held on closes. Implied vs historical σ and a per-symbol multiplier for the 30-day indices (§5.6, §13 question 7); wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
@@ -208,7 +249,7 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | 1 | ~~Exact TradingView names on the owner's plan~~ — mostly answered 28-Oct-2026 (§5.6): `CBOE:VIX1D`, `CBOE:VXN`, `CBOE:GVZ`, `DERIBIT:DVOL` found on the free plan. Still to try: `TVC:VIX` (fallback), `CBOE:OVX`, `DERIBIT:ETHDVOL`, a DAX volatility index (VDAX / VSTOXX) | Oil, ETH, DE40 |
 | 2 | TradingView plan (the owner's is free): the four indices of §5.6 are available; still to check: indicators per chart, alerts | Phase 6 |
 | 3 | Does IC Markets' (and Pepperstone's) TradingView connection trade on the **same cTrader account**? If not, TM does not see trades placed from TradingView | Trading from TradingView (not Levels itself) |
-| 4 | US options source: Tradier free developer account (REST, delayed — preferred), yfinance (Python, unofficial) or another; CBOE's delayed JSON refused a plain request on 27-Oct-2026 | Phase 2 |
+| 4 | ~~US options source~~ — **Tradier** chosen 28-Oct-2026 (free developer account, sandbox data delayed 15 minutes; §6.1). The owner creates the account and puts the token in `~/.config/levels/secrets.env`. Not chosen: yfinance (unofficial scraping), CBOE's delayed JSON (refused a plain request on 27-Oct-2026) | Phase 2 |
 | 5 | Anchor of the range for US indices: the CFD's daily open (now) or the 09:30 New York cash open | Phase 5 |
 | 6 | Where the morning line goes besides the paste box (file, Telegram) | Phase 4 |
 | 7 | The 30-day indices (VXN, GVZ) give σ about 45 % above realised, VIX1D does not (§5.6). Scale them per symbol (e.g. a list line `USTEC=CBOE:VXN*0.7`), or derive USTEC from VIX1D × VXN ÷ VIX? Decided from Phase 5's hit rates | Phase 5 |
@@ -234,3 +275,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 |---|---|---|
 | v1.0 | 27 Oct 2026 | First version: idea, scope, sources, Phase 1 range method (§5), outline of gamma levels and the morning line, decisions, phases 0–8, open questions. Phase 1 indicator written |
 | v1.1 | 28 Oct 2026 | Phase 1 done: owner's check on US500, USTEC, XAUUSD, EURUSD, BTCUSD (§5.6); volatility index names found (§4, §13 q1–2); 30-day indices wider than realised → open question 7; Phase 5 gets the band-touch counts. Indicator unchanged |
+| v1.2 | 28 Oct 2026 | Phase 2 specified (§6.1) and written: `levels fetch` for Deribit BTC/ETH and Tradier SPY; Tradier chosen as the US source (§13 q4); straddle → σ by the exact relation instead of × 0.85 |
