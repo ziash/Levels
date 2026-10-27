@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+*.swp
+TestResults/
+# runtime data never belongs in the repo (spec §12)
+snapshots/
+reports/
