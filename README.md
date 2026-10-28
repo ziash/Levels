@@ -6,7 +6,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 written** — `levels fetch`: Deribit works, SPY (Alpha Vantage, end of day) waits for a free key |
+| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 done on crypto** — `levels fetch` works on Deribit BTC/ETH; no free US options source yet ([spec §13 q4](docs/spec.md#13-open-questions)) |
 | Specification | [docs/spec.md](docs/spec.md) — the single source of truth (idea, method, phases, open questions, history) |
 | Indicator | [pine/Levels.pine](pine/Levels.pine) — Pine Script v6 |
 | Runs on | TradingView in the browser (Ubuntu or Windows); the program (from Phase 2) on Ubuntu, .NET 10 |
@@ -18,7 +18,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 |---|---|---|
 | 0 | Repo and spec | Done |
 | 1 | Expected range (Pine) | Done 28-Oct-2026 |
-| 2 | Options data check | Written; Deribit done, SPY waits for the Alpha Vantage key |
+| 2 | Options data check | Done 28-Oct-2026 on crypto only; US source open |
 | 3 | Gamma levels + morning line | — |
 | 4 | Morning report (JSON + HTML, timer) | — |
 | 5 | Calibration (how well the ranges held) | — |
@@ -39,8 +39,8 @@ Details and acceptance checks: [spec §10](docs/spec.md#10-phases).
 ```bash
 dotnet build
 dotnet test
-dotnet run --project src/Levels -- fetch                 # BTC, ETH (Deribit) and SPY (Alpha Vantage, previous close, needs a key)
-dotnet run --project src/Levels -- fetch --us none       # Deribit only
+dotnet run --project src/Levels -- fetch                 # BTC and ETH (Deribit, no key)
+dotnet run --project src/Levels -- fetch --crypto BTC    # BTC only
 ```
 
-Raw snapshots go to `~/levels/snapshots/<UTC date>/`. SPY needs a free Alpha Vantage key ([get one](https://www.alphavantage.co/support/#api-key)) in `~/.config/levels/secrets.env` (`ALPHAVANTAGE_KEY=…`, mode 600) — the program prints the steps when it is missing ([spec §6.1](docs/spec.md#61-phase-2-levels-fetch)).
+Raw snapshots go to `~/levels/snapshots/<UTC date>/`. What is printed: [spec §6.1](docs/spec.md#61-phase-2-levels-fetch).

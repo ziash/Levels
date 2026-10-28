@@ -9,7 +9,7 @@ internal static class Report
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     /// <param name="phase1">Phase 1's σ per day for this underlying and where it came from, e.g. (0.0196, "DVOL 37.51"); null if not known here.</param>
-    public static void Print(TextWriter o, ChainSnapshot chain, ChainSummary s, (double Sigma, string Label)? phase1, string? phase1Hint)
+    public static void Print(TextWriter o, ChainSnapshot chain, ChainSummary s, (double Sigma, string Label)? phase1)
     {
         o.WriteLine($"{chain.Underlying} ({chain.Source}, {chain.TakenUtc.ToString("yyyy-MM-dd HH:mm:ss", Inv)} UTC)  price {Num(chain.Price)}  {chain.Options.Count} options");
 
@@ -39,8 +39,6 @@ internal static class Report
             if (phase1 is { } q && q.Sigma > 0)
                 o.WriteLine($"  Straddle ÷ Phase 1  {(st.SigmaPerDay / q.Sigma).ToString("0.00", Inv)}");
         }
-        if (phase1Hint is not null)
-            o.WriteLine("  Phase 1        " + phase1Hint);
         o.WriteLine();
     }
 
