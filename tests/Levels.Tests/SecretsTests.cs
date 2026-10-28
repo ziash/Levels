@@ -8,14 +8,14 @@ public class SecretsTests
         var keys = Secrets.Parse([
             "# Levels keys",
             "",
-            "TRADIER_TOKEN=abc123",
-            "export TRADIER_BASE=\"https://api.tradier.com/v1/\"",
+            "ALPHAVANTAGE_KEY=abc123",
+            "export OTHER=\"https://example.com/v1/\"",
             "BROKEN LINE",
             "EMPTY=",
         ]);
 
-        Assert.Equal("abc123", keys["TRADIER_TOKEN"]);
-        Assert.Equal("https://api.tradier.com/v1/", keys["TRADIER_BASE"]);
+        Assert.Equal("abc123", keys["ALPHAVANTAGE_KEY"]);
+        Assert.Equal("https://example.com/v1/", keys["OTHER"]);
         Assert.Equal("", keys["EMPTY"]);
         Assert.Equal(3, keys.Count);
     }

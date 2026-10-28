@@ -9,7 +9,7 @@ const string Usage = """
     levels fetch [--crypto BTC,ETH|none] [--us SPY|none] [--out DIR]
 
       --crypto   Deribit currencies (default BTC,ETH)
-      --us       US symbol from Tradier (default SPY); needs TRADIER_TOKEN in ~/.config/levels/secrets.env
+      --us       US symbol from Alpha Vantage (default SPY), previous session's close; needs ALPHAVANTAGE_KEY in ~/.config/levels/secrets.env
       --out      folder for the raw snapshots (default ~/levels/snapshots/<UTC date>)
     """;
 
@@ -56,7 +56,7 @@ Directory.CreateDirectory(outDir);
 string stamp = now.ToString("HHmmss", CultureInfo.InvariantCulture);
 
 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-http.DefaultRequestHeaders.UserAgent.ParseAdd("Levels/1.2 (+https://github.com/ziash/Levels)");
+http.DefaultRequestHeaders.UserAgent.ParseAdd("Levels/1.3 (+https://github.com/ziash/Levels)");
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
@@ -95,13 +95,13 @@ if (us is not null)
     if (Secrets.ModeWarning(secretsPath) is { } warning)
         Console.Error.WriteLine("Warning: " + warning);
 
-    if (!secrets.TryGetValue("TRADIER_TOKEN", out var token) || token.Length == 0)
+    if (!secrets.TryGetValue("ALPHAVANTAGE_KEY", out var key) || key.Length == 0)
     {
         Console.WriteLine($"""
-            {us}: skipped — no TRADIER_TOKEN in {secretsPath}.
-              1. Create a free developer account at https://developer.tradier.com and copy the sandbox access token.
+            {us}: skipped — no ALPHAVANTAGE_KEY in {secretsPath}.
+              1. Get a free key at https://www.alphavantage.co/support/#api-key
               2. mkdir -p ~/.config/levels && nano {secretsPath}
-                 TRADIER_TOKEN=<your token>
+                 ALPHAVANTAGE_KEY=<your key>
               3. chmod 600 {secretsPath}
             """);
     }
@@ -109,21 +109,20 @@ if (us is not null)
     {
         try
         {
-            string baseUrl = secrets.GetValueOrDefault("TRADIER_BASE") is { Length: > 0 } b ? b : TradierSource.SandboxUrl;
-            var tradier = new TradierSource(http, baseUrl, token);
-            Console.WriteLine($"{us}: fetching from Tradier (one request a second) …");
-            var raw = await tradier.FetchAsync(us, now, cts.Token);
-            string file = Path.Combine(outDir, $"tradier-{us}-{stamp}.json");
+            var alphaVantage = new AlphaVantageSource(http, key);
+            Console.WriteLine($"{us}: fetching the previous session's chain from Alpha Vantage (2 requests) …");
+            var raw = await alphaVantage.FetchAsync(us, cts.Token);
+            string file = Path.Combine(outDir, $"alphavantage-{us}-{stamp}.json");
             await File.WriteAllTextAsync(file, raw.ToJsonString(), cts.Token);
 
-            var chain = TradierSource.Parse(us, raw, now);
+            var chain = AlphaVantageSource.Parse(us, raw);
             Report.Print(Console.Out, chain, ChainSummary.From(chain), null,
-                "compare σ per day with the Levels table on the US500 chart (VIX1D)");
+                $"compare σ per day with VIX1D's close on {chain.TakenUtc.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)} ÷ 100 ÷ √252 (the US500 Levels table)");
             Console.WriteLine($"  saved {file}\n");
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidOperationException or FormatException)
         {
-            Console.Error.WriteLine($"{us}: Tradier fetch failed: {e.Message}\n");
+            Console.Error.WriteLine($"{us}: Alpha Vantage fetch failed: {e.Message}\n");
             failures++;
         }
     }

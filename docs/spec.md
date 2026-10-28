@@ -4,8 +4,8 @@
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 written** (28-Oct-2026): `levels fetch` (§6.1) — Deribit checked live; the SPY source waits for the owner's Tradier token (§10) |
-| Document version | v1.2 (28-Oct-2026) — history in §16 |
+| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 written** (28-Oct-2026): `levels fetch` (§6.1) — Deribit checked live; SPY now from Alpha Vantage (v1.3, Tradier refuses Pakistan residents), waits for the owner's free key (§10) |
+| Document version | v1.3 (28-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
 | Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (private) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
@@ -152,23 +152,23 @@ A console command on the Ubuntu laptop (`dotnet run --project src/Levels -- fetc
 | Underlying | Source | Key | What is fetched |
 |---|---|---|---|
 | BTC, ETH | Deribit public API (`www.deribit.com/api/v2/public/`), real time | none | `get_book_summary_by_currency` (every option: open interest, mark price, mark IV, underlying price) — one request per currency; `get_volatility_index_data` (latest DVOL, to compare with Phase 1) |
-| SPY | Tradier API (§13 question 4: chosen) — free developer account, sandbox data delayed 15 minutes | `TRADIER_TOKEN` in `~/.config/levels/secrets.env` (mode 600); optional `TRADIER_BASE` (default `https://sandbox.tradier.com/v1/`) | quote; expiry list; one chain (with greeks) per expiry for the next 60 days, at most 30, one request per second |
+| SPY | Alpha Vantage (`www.alphavantage.co/query`; §13 question 4) — free key, 25 requests a day; **end of day**: the previous session's close | `ALPHAVANTAGE_KEY` in `~/.config/levels/secrets.env` (mode 600) | `HISTORICAL_OPTIONS` (the whole chain of the previous session: bid/ask, mark, OI, IV, greeks — every expiry) and `TIME_SERIES_DAILY` (the close on that date, as the price) — 2 requests, 2 seconds apart |
 
-Without a Tradier token the SPY part is skipped with a message saying how to get one; Deribit still runs. Strike and expiry of a Deribit option come from its name (`BTC-31OCT26-87000-C` = call, strike 87,000, expiry 31-Oct-2026 08:00 UTC); a SPY option expires 16:00 New York on its expiry date.
+Without a key the SPY part is skipped with a message saying how to get one; Deribit still runs. Strike and expiry of a Deribit option come from its name (`BTC-31OCT26-87000-C` = call, strike 87,000, expiry 31-Oct-2026 08:00 UTC); a SPY option expires 16:00 New York on its expiry date. The SPY chain is as of 16:00 New York on its date, and time to expiry is counted from there, not from when it was fetched. Alpha Vantage answers a bad key or the daily limit with HTTP 200 and an `Information` / `Error Message` field; Levels treats that as a failed fetch. The key goes in the URL and is never printed.
 
-**Saved** — the raw answers, unchanged, in `~/levels/snapshots/<yyyy-MM-dd>/` (UTC date): `deribit-BTC-<HHmmss>.json`, `deribit-ETH-…`, `tradier-SPY-<HHmmss>.json` (one file holding the quote, expiry list and every chain fetched). Later phases and tests can re-read a snapshot without going online.
+**Saved** — the raw answers, unchanged, in `~/levels/snapshots/<yyyy-MM-dd>/` (UTC date): `deribit-BTC-<HHmmss>.json`, `deribit-ETH-…`, `alphavantage-SPY-<HHmmss>.json` (one file holding the chain and the daily closes). Later phases and tests can re-read a snapshot without going online.
 
 **Printed, per underlying**
 
 | Read | How |
 |---|---|
-| Price | Deribit index price; SPY last |
+| Price | Deribit index price; SPY the close on the chain's date |
 | Put/call balance | total call OI and put OI, as % of all OI (`calls 58 % / puts 42 %`) |
 | Top expiries | the 3 expiries with the most OI, with their share |
 | Top strikes | the 5 strikes with the most call OI and the 5 with the most put OI, all expiries together |
 | Straddle σ | the nearest expiry at least 12 hours away; its strike closest to the underlying price; straddle = call + put mid price (Deribit: mark price × underlying price, in USD). σ to expiry = straddle × √(π/2) ÷ price (≈ 1.25 × straddle ÷ price — a straddle pays the average absolute move, which is 0.80σ). Then **σ per day** = σ to expiry ÷ √T, T = days to expiry (calendar days for crypto; trading sessions for SPY, holidays ignored) |
 | ATM IV σ | the same strike's implied volatility ÷ 100 ÷ √365 (crypto) or √252 (SPY) |
-| Phase 1 compare | crypto: the latest DVOL ÷ 100 ÷ √365, i.e. Phase 1's σ; SPY: read VIX1D from the chart's Levels table |
+| Phase 1 compare | crypto: the latest DVOL ÷ 100 ÷ √365, i.e. Phase 1's σ; SPY: VIX1D's close on the chain's date ÷ 100 ÷ √252, read from TradingView |
 
 The often-quoted "straddle × 0.85" is a rule of thumb for the expected move; Levels uses the exact relation so the number compares directly with Phase 1's σ.
 
@@ -221,7 +221,7 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 |---|---|---|---|---|
 | 0 | Repo and spec | This document, README, CLAUDE.md | Owner reviews | **Done 27-Oct-2026** |
 | 1 | Expected range | `pine/Levels.pine`: §5 — implied or historical σ, ±1σ/±2σ lines per day, table | Owner adds it in TradingView on US500, USTEC, XAUUSD, EURUSD, BTCUSD; it compiles; the table names the source; the volatility symbols of §4 are found or the list is corrected; one day's numbers checked by hand | **Done 28-Oct-2026** — results §5.6 |
-| 2 | Options data check | `levels fetch` (§6.1): download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print the straddle σ, top OI strikes and expiries, put/call balance | Snapshots saved; straddle σ within reason of Phase 1's implied σ; US source chosen and recorded (§13) | **Written 28-Oct-2026** — Deribit done (first run §6.1, straddle ÷ DVOL 0.88–0.89); SPY waits for the owner's Tradier token |
+| 2 | Options data check | `levels fetch` (§6.1): download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print the straddle σ, top OI strikes and expiries, put/call balance | Snapshots saved; straddle σ within reason of Phase 1's implied σ; US source chosen and recorded (§13) | **Written 28-Oct-2026** — Deribit done (first run §6.1, straddle ÷ DVOL 0.88–0.89); SPY from Alpha Vantage (v1.3), waits for the owner's free key |
 | 3 | Gamma levels | Gamma by strike, TCS/TPS/TGS, flip, front and next expiry; the morning line (§7); the indicator's paste box and strike lines with the live ratio | Calculations match a hand-worked example in the tests; lines appear at the right US500 prices | — |
 | 4 | Morning report | JSON + HTML page per day in `~/levels/reports/`; systemd timer before the London and New York opens; layout possibly designed with Claude Design | Report on screen before the open for a week | — |
 | 5 | Calibration | From history, per symbol: how often the day closed inside ±1σ; how often ±1σ and ±2σ were touched; how often a ±1σ break went on to reach ±2σ; how often ±2σ held on closes. Implied vs historical σ and a per-symbol multiplier for the 30-day indices (§5.6, §13 question 7); wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
@@ -249,7 +249,7 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | 1 | ~~Exact TradingView names on the owner's plan~~ — mostly answered 28-Oct-2026 (§5.6): `CBOE:VIX1D`, `CBOE:VXN`, `CBOE:GVZ`, `DERIBIT:DVOL` found on the free plan. Still to try: `TVC:VIX` (fallback), `CBOE:OVX`, `DERIBIT:ETHDVOL`, a DAX volatility index (VDAX / VSTOXX) | Oil, ETH, DE40 |
 | 2 | TradingView plan (the owner's is free): the four indices of §5.6 are available; still to check: indicators per chart, alerts | Phase 6 |
 | 3 | Does IC Markets' (and Pepperstone's) TradingView connection trade on the **same cTrader account**? If not, TM does not see trades placed from TradingView | Trading from TradingView (not Levels itself) |
-| 4 | ~~US options source~~ — **Tradier** chosen 28-Oct-2026 (free developer account, sandbox data delayed 15 minutes; §6.1). The owner creates the account and puts the token in `~/.config/levels/secrets.env`. Not chosen: yfinance (unofficial scraping), CBOE's delayed JSON (refused a plain request on 27-Oct-2026) | Phase 2 |
+| 4 | ~~US options source~~ — **Alpha Vantage** chosen 28-Oct-2026 (v1.3; free key, end-of-day chain with OI, IV and greeks; §6.1). Tradier was chosen first (v1.2) but does not open accounts for residents of Pakistan. End of day is enough: OI changes once a day, and the day's range comes from VIX1D (§5.6). Not chosen: yfinance (unofficial scraping), CBOE's delayed JSON (refused a plain request on 27-Oct-2026), Polygon/Massive and MarketData.app free plans (OI/greeks or credits not enough for a full chain — not checked in detail) | Phase 2 |
 | 5 | Anchor of the range for US indices: the CFD's daily open (now) or the 09:30 New York cash open | Phase 5 |
 | 6 | Where the morning line goes besides the paste box (file, Telegram) | Phase 4 |
 | 7 | The 30-day indices (VXN, GVZ) give σ about 45 % above realised, VIX1D does not (§5.6). Scale them per symbol (e.g. a list line `USTEC=CBOE:VXN*0.7`), or derive USTEC from VIX1D × VXN ÷ VIX? Decided from Phase 5's hit rates | Phase 5 |
@@ -276,3 +276,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 | v1.0 | 27 Oct 2026 | First version: idea, scope, sources, Phase 1 range method (§5), outline of gamma levels and the morning line, decisions, phases 0–8, open questions. Phase 1 indicator written |
 | v1.1 | 28 Oct 2026 | Phase 1 done: owner's check on US500, USTEC, XAUUSD, EURUSD, BTCUSD (§5.6); volatility index names found (§4, §13 q1–2); 30-day indices wider than realised → open question 7; Phase 5 gets the band-touch counts. Indicator unchanged |
 | v1.2 | 28 Oct 2026 | Phase 2 specified (§6.1) and written: `levels fetch` for Deribit BTC/ETH and Tradier SPY; Tradier chosen as the US source (§13 q4); straddle → σ by the exact relation instead of × 0.85 |
+| v1.3 | 28 Oct 2026 | US options source changed from Tradier to Alpha Vantage (Tradier refuses Pakistan residents): end-of-day SPY chain plus the daily close, time to expiry counted from the chain's close (§6.1, §13 q4) |
