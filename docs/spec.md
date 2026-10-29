@@ -1,11 +1,11 @@
 # Levels — specification
 
-**Where can price go today, and where are the big option positions?** Levels draws the day's expected range on your TradingView chart before you trade and, from Phase 3, the strikes where the largest option positions sit — converted into the prices of the CFDs you trade at IC Markets and Pepperstone. It never trades.
+**Where can price go today, where will it stall, bounce or speed up, and which way is big money leaning this week?** Levels draws the day's expected range on your TradingView chart before you trade; from Phase 3, the price levels where the largest option positions sit, labelled in plain words (Price Stall, Bounce Back, Magnet, Speed Up) and converted into the prices of the CFDs you trade at IC Markets and Pepperstone; from Phase 9, the week's big-money bias from the COT report. It never trades.
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; US options source chosen 29-Oct-2026: **MarketData.app** (§6.1, §13 question 4); SPY not yet in `levels fetch` |
-| Document version | v1.6 (29-Oct-2026) — history in §16 |
+| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; US options source chosen 29-Oct-2026: **MarketData.app** (§6.1, §13 question 4); SPY not yet in `levels fetch`. **v1.7:** gamma lines get plain-language labels — Price Stall, Bounce Back, Magnet, Speed Up (§7); weekly big-money bias from COT added as Phase 9 (§6.2) |
+| Document version | v1.7 (29-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
 | Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (public) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
@@ -22,12 +22,15 @@ A morning with Levels:
 
 1. Open the US500 chart in TradingView. The indicator has already drawn today's range: the open, ±1σ (where price closes on about two days in three) and ±2σ (stretched).
 2. The table in the corner says where the range came from (e.g. "implied, VIX 15.2") and where price sits now ("+0.7σ").
-3. From Phase 3: paste the morning line from the Levels program into the indicator; the strikes with the most call and put gamma (TCS, TPS), the top gamma strike (TGS) and the gamma flip appear as lines, already in US500 prices.
-4. Look for your price-action setups at those levels. A short from a supply zone that lines up with +1σ and the TCS has more behind it than one in the middle of the range.
+3. From Phase 3: paste the morning line from the Levels program into the indicator. Four lines appear, already in US500 prices and labelled in plain words (§7): **Price Stall** (where a rise tends to stall), **Bounce Back** (where a fall tends to bounce), **Magnet** (where price tends to drift and stick) and **Speed Up** (below it, moves get faster and bigger).
+4. From Phase 9: the table also says which way big money leaned in this week's COT report, e.g. "Big money: buying (COT 74 ↑)" or "Crowded long — late to buy" (§6.2).
+5. Look for your price-action setups at those levels. A short from a supply zone that lines up with +1σ and Price Stall, in a week when big money is selling, has more behind it than one in the middle of the range.
+
+Three speeds: **COT** = the lean over weeks (1D/4H bias), **range and gamma lines** = today's map, **your setup** (or Scout) = the entry.
 
 ## 2. Scope
 
-**In:** expected daily range for every symbol the owner trades (§4); gamma and open-interest levels where a liquid options market exists (US500, USTEC, XAUUSD, XAGUSD, XTIUSD, BTCUSD, ETHUSD); a morning report; checks of how well the ranges held.
+**In:** expected daily range for every symbol the owner trades (§4); gamma and open-interest levels where a liquid options market exists (US500, USTEC, XAUUSD, XAGUSD, XTIUSD, BTCUSD, ETHUSD); the weekly futures positioning (COT) of the large traders for every symbol the CFTC reports (§6.2); a morning report; checks of how well the ranges and lines held.
 
 **Out:** placing or managing orders (that is TM's job); live options order flow (FlowLens, DeltaTape — needs paid real-time feeds); single shares; signals that tell you to buy or sell. Levels shows context; the decision stays with the owner.
 
@@ -37,12 +40,13 @@ A morning with Levels:
                           Phase 1 (no program needed)
 TradingView ──── chart symbol (ICMARKETS:US500) ─────────┐
             ──── volatility index (TVC:VIX, CBOE:GVZ …) ──┼──► Levels.pine ──► range lines + table
+            ──── COT data (Phase 9) ───────────────────────┤                    (+ COT row in the table)
                                                          │
                           Phase 2–4 (Ubuntu program)     │
 Deribit, US options source ──► levels (C#) ──► morning line ── paste ──┘   (+ JSON / HTML report, Phase 4)
 ```
 
-- Pine Script (TradingView's indicator language) **cannot read files or the internet**. Anything TradingView already carries — chart prices, volatility indices, daily candles — is computed inside the indicator. Option chains are not on TradingView, so gamma and open-interest levels come from the Levels program and reach the chart as one pasted line (§7).
+- Pine Script (TradingView's indicator language) **cannot read files or the internet**. Anything TradingView already carries — chart prices, volatility indices, daily candles — is computed inside the indicator. Option chains are not on TradingView, so gamma and open-interest levels come from the Levels program and reach the chart as one pasted line (§7). The COT report **is** on TradingView, so Phase 9 needs no program (§6.2).
 - Prices: the indicator works on the chart's own symbol. Chart the **broker's** symbol (`ICMARKETS:US500`, `PEPPERSTONE:NAS100` …) so the lines are in the prices you trade.
 
 ## 4. Symbols and sources
@@ -128,7 +132,7 @@ The owner's check in TradingView (free plan), 15-minute charts, 27-Oct-2026 abou
 - Days seen on the charts: US500 14-Oct broke −1σ after the 13:30 UTC cash open and stalled at −2σ (wicks about 10 points through, 15-minute closes held), the next day's band 30 % wider as VIX1D rose; US500 27-Oct high stopped at +1σ twice. USTEC 16-Oct and 22-Oct fell to about −2σ. XAUUSD 22-Oct closed near −2σ. BTCUSD 22-Oct fell to −2σ and bounced; 24-Oct's low touched −1σ. One-off examples, not statistics — that is Phase 5.
 - Cosmetic: the status line shows the inputs "Auto 20 252" even where a list line sets `/365`.
 
-## 6. Gamma and open interest (Phases 2–3)
+## 6. Positioning: options (Phases 2–3) and futures COT (Phase 9)
 
 Phase 2 is specified in §6.1; Phase 3 (gamma) is still an outline, agreed in detail when it starts. What it computes per underlying (SPY/SPX, QQQ/NDX, GLD, SLV, USO, Deribit BTC/ETH):
 
@@ -196,7 +200,69 @@ The often-quoted "straddle × 0.85" is a rule of thumb for the expected move; Le
 - BTC top strikes: calls 95,000 / 90,000 / 100,000, puts 60,000 / 75,000 / 70,000. ETH: calls 3,200 / 2,500 / 3,000, puts 2,300 / 2,000 / 2,400.
 - Snapshots: 392 KB (BTC) and 323 KB (ETH) per fetch.
 
-## 7. The morning line (Phase 3, outline)
+### 6.2 Weekly bias: COT (Phase 9)
+
+The **Commitments of Traders (COT)** report is published by the US futures regulator (CFTC) every week: positions as of **Tuesday**, released **Friday 15:30 New York**. It shows how the large traders in each US futures market are positioned. Levels turns it into one plain-language row in the table: which way big money leans, and whether that side is crowded. It is a slow read for the 1D/4H bias, never an entry signal.
+
+**Source.** TradingView carries the COT data as special tickers (`COT…`, built with TradingView's own *LibraryCOT* Pine library) that `request.security()` can read, so Phase 9 lives inside `Levels.pine` like Phase 1 — no program. Fallback if the owner's plan does not serve them (§13 q9): the Levels program fetches the CFTC's public API (`publicreporting.cftc.gov`, no key) and the values travel in the morning line. Checked 29-Oct-2026 on the CFTC API: E-mini S&P 500 report of 20-Oct (Traders in Financial Futures: asset managers long 1.10 M / short 0.20 M; leveraged funds net short ≈ 371 k) and gold (Disaggregated: managed money long 121 k / short 17 k).
+
+**Markets and the group that counts as "big money"** (defaults; a setting per symbol, §13 q8):
+
+| Owner's symbol | COT market (CFTC code) | Report | Group |
+|---|---|---|---|
+| US500 | E-mini S&P 500 (13874A) | Traders in Financial Futures | Leveraged funds |
+| USTEC | E-mini Nasdaq-100 (209742) | Traders in Financial Futures | Leveraged funds |
+| XAUUSD / XAGUSD | Gold (088691) / Silver (084691) | Disaggregated | Managed money |
+| XTIUSD / XNGUSD / XPTUSD | WTI crude (067651) / Natural gas (023651) / Platinum (076651) | Disaggregated | Managed money |
+| EURUSD, GBPUSD, USDJPY | Euro FX (099741), British pound (096742), Japanese yen (097741) | Traders in Financial Futures | Leveraged funds |
+| AUDJPY, EURGBP, GBPJPY | both legs: Australian dollar (232741) with yen; euro with pound; pound with yen | Traders in Financial Futures | Leveraged funds |
+| BTCUSD / ETHUSD / SOLUSD | CME Bitcoin (133741) / CME Ether (146021) / CME Micro SOL (177742, a small market) | Traders in Financial Futures | Leveraged funds |
+| DE40, XBRUSD | none: Eurex and ICE Europe are not in the CFTC report — §13 q10 | — | — |
+
+All codes checked on the CFTC API on 29-Oct-2026: each has a report of 20-Oct-2026.
+
+**What is computed**
+
+| Read | How |
+|---|---|
+| Net position | group's long − short contracts (for USD-quoted pairs like USDJPY, the yen future's net with the sign flipped) |
+| **COT Index** (0–100) | where this week's net sits in its range of the last 3 years (156 weeks): (net − lowest) ÷ (highest − lowest) × 100 |
+| Weekly change | this week's net − last week's, shown as ↑ / ↓ |
+| Crosses | score = COT Index of the base leg − COT Index of the quote leg (GBPJPY: pound − yen), −100 … +100 |
+
+**What the table says**
+
+| COT Index (or cross score) | Words |
+|---|---|
+| ≥ 90 (≥ +60) | **Crowded long — late to buy** |
+| 60–89 and rising (+20 … +59) | **Big money buying** |
+| 11–39 and falling (−20 … −59) | **Big money selling** |
+| ≤ 10 (≤ −60) | **Crowded short — late to sell** |
+| otherwise | **Neutral** |
+
+Plus the index or score, the arrow, and the report date: `Big money: buying (COT 74 ↑, 20-Oct)`. A crowded side is a warning that the trend is late, not a signal to turn.
+
+**No look-ahead.** A report counts on the chart only from its Friday release, not from its Tuesday date, so past bars never use a number that was not yet published (checked in the Phase 9 build, §13 q9).
+
+## 7. Gamma lines on the chart and the morning line (Phase 3)
+
+### 7.1 Plain-language labels (owner, 29-Oct-2026)
+
+Each gamma level is drawn as a horizontal line across the day, labelled in words that say what price tends to do there. The technical name, strike and expiry are in the label's tooltip (hover); a setting switches labels to **Friendly** (default), **Technical** or **Both**.
+
+| Line (label on the chart) | Technical | Look | What to expect |
+|---|---|---|---|
+| **Price Stall** | TCS — the strike with the most call gamma ("call wall") | red, solid | A rise tends to slow down or stall here |
+| **Bounce Back** | TPS — the strike with the most put gamma ("put wall") | green, solid | A fall tends to bounce here |
+| **Magnet** | TGS — the strike with the most gamma overall | purple, dotted | Price tends to drift toward it and stick, most of all near expiry |
+| **Speed Up ↓** | gamma flip — where total gamma changes sign | orange, dashed; the area below it lightly shaded orange ("speed-up zone") | Below the line, dealers' hedging adds fuel: moves get faster and bigger. Above it, their hedging calms moves |
+
+- The table gets a **Mood** row: `Calm (above Speed Up)` or `Fast (below Speed Up)`, from where price is now.
+- Two levels closer than 0.1σ share one line with both labels (e.g. "Magnet · Price Stall").
+- The range lines of Phase 1 get plain labels too: ±1σ **Normal range**, ±2σ **Stretched**.
+- These are estimates: every gamma tool guesses which side dealers hold (§6). Phase 5 counts how often each label held on past days (how often a rise stalled at Price Stall, a fall bounced at Bounce Back, moves below Speed Up were bigger); the wording follows those counts.
+
+### 7.2 The morning line
 
 One line per underlying, printed by the program and pasted into the indicator's text box, e.g.
 
@@ -219,6 +285,8 @@ The indicator converts the strikes into the chart's prices with a **live ratio**
 | 7 | Yang–Zhang, 20 days, equal weights for the historical range | Uses the whole candle and the overnight gap; recency weighting is a Phase 5 option once there is data to judge it |
 | 8 | Strike levels converted with a live ratio inside Pine (Phase 3) | The ratio is measured from the same chart the owner trades; no cTrader connection needed |
 | 9 | US options from MarketData.app's end-of-day chain (`date=` the previous session), with IV and gamma computed by Levels — not its chain with ready-made greeks (29-Oct-2026) | 1 credit per expiry instead of ~500, so a day fits the free plan's 100 credits; open interest changes once a day anyway, so yesterday's close is the right input for morning levels |
+| 10 | Gamma lines labelled in plain words — Price Stall, Bounce Back, Magnet, Speed Up — with the technical names in the tooltip (owner, 29-Oct-2026; §7.1) | Says what to expect at a level instead of what it is called |
+| 11 | COT added as Phase 9: a plain-language row in the table, not lines; read from TradingView's own COT data inside Pine, the CFTC API through the program only as fallback (owner, 29-Oct-2026; §6.2) | COT is a weekly bias, not a price level; no program needed when TradingView carries it |
 
 ## 9. Technology
 
@@ -235,12 +303,15 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | 0 | Repo and spec | This document, README, CLAUDE.md | Owner reviews | **Done 27-Oct-2026** |
 | 1 | Expected range | `pine/Levels.pine`: §5 — implied or historical σ, ±1σ/±2σ lines per day, table | Owner adds it in TradingView on US500, USTEC, XAUUSD, EURUSD, BTCUSD; it compiles; the table names the source; the volatility symbols of §4 are found or the list is corrected; one day's numbers checked by hand | **Done 28-Oct-2026** — results §5.6 |
 | 2 | Options data check | `levels fetch` (§6.1): download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print the straddle σ, top OI strikes and expiries, put/call balance | Snapshots saved; straddle σ within reason of Phase 1's implied σ; US source chosen and recorded (§13) | **Done 28-Oct-2026 on crypto only** (owner's decision) — Deribit: first run §6.1, straddle ÷ DVOL 0.88–0.89. US source chosen 29-Oct-2026: MarketData.app (§6.1, decision 9); SPY in `levels fetch` not yet written. US500 keeps VIX1D for its range (§5.6) |
-| 3 | Gamma levels | Gamma by strike, TCS/TPS/TGS, flip, front and next expiry; the morning line (§7); the indicator's paste box and strike lines with the live ratio | Calculations match a hand-worked example in the tests; lines appear at the right US500 prices | — |
+| 3 | Gamma levels | Gamma by strike, TCS/TPS/TGS, flip, front and next expiry; SPY, QQQ and GLD from MarketData.app (≈ 3 credits each a day) and Deribit BTC/ETH; the morning line (§7.2); the indicator's paste box, the plain-language lines and Mood row (§7.1) with the live ratio; plain labels on the Phase 1 range lines | Calculations match a hand-worked example in the tests; lines appear at the right US500 and BTCUSD prices with the labels of §7.1 | — |
 | 4 | Morning report | JSON + HTML page per day in `~/levels/reports/`; systemd timer before the London and New York opens; layout possibly designed with Claude Design | Report on screen before the open for a week | — |
-| 5 | Calibration | From history, per symbol: how often the day closed inside ±1σ; how often ±1σ and ±2σ were touched; how often a ±1σ break went on to reach ±2σ; how often ±2σ held on closes. Implied vs historical σ and a per-symbol multiplier for the 30-day indices (§5.6, §13 question 7); wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
-| 6 | Alerts | TradingView alerts when price reaches ±1σ, ±2σ or a strike level | Alert fires on a test | — |
+| 5 | Calibration | From history, per symbol: how often a rise stalled at Price Stall, a fall bounced at Bounce Back, and moves below Speed Up were bigger than above (§7.1); how often the day closed inside ±1σ; how often ±1σ and ±2σ were touched; how often a ±1σ break went on to reach ±2σ; how often ±2σ held on closes. Implied vs historical σ and a per-symbol multiplier for the 30-day indices (§5.6, §13 question 7); wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
+| 6 | Alerts | TradingView alerts when price reaches ±1σ, ±2σ, a gamma line, or crosses Speed Up | Alert fires on a test | — |
 | 7 | Intraday crypto gamma | Deribit gamma levels refreshed during the day | Levels update without a restart | — |
 | 8 | TM link (optional) | TM reads the day's σ for its hedge distance or a warning — built in the Trader repo under Trader's rules, on the owner's go | Agreed in Trader's TM document | — |
+| 9 | Weekly bias (COT) | §6.2 in `Levels.pine`: COT Index, weekly change, crosses from both legs, plain words and report date in the table; no look-ahead | Compiles on the owner's plan; for US500, XAUUSD, EURUSD, GBPJPY and BTCUSD the table matches the CFTC report of the same week, checked by hand; a past week's bias appears only from its Friday | — (needs nothing from Phases 2–8; can be built next) |
+
+Phases need not be built in number order. Suggested next: **9** (Pine only, quick), then **2** for SPY, then **3**.
 
 ## 11. Using the indicator (Phase 1)
 
@@ -266,6 +337,9 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | 5 | Anchor of the range for US indices: the CFD's daily open (now) or the 09:30 New York cash open | Phase 5 |
 | 6 | Where the morning line goes besides the paste box (file, Telegram) | Phase 4 |
 | 7 | The 30-day indices (VXN, GVZ) give σ about 45 % above realised, VIX1D does not (§5.6). Scale them per symbol (e.g. a list line `USTEC=CBOE:VXN*0.7`), or derive USTEC from VIX1D × VXN ÷ VIX? Decided from Phase 5's hit rates | Phase 5 |
+| 8 | Which COT group is "big money" per market (§6.2 defaults: leveraged funds for indices, currencies and crypto; managed money for commodities)? Asset managers or the Legacy report's non-commercials are the alternatives | Phase 9 |
+| 9 | Does the owner's TradingView plan serve the `COT…` tickers, and are they dated by the Tuesday report date (then shift to the Friday release to avoid look-ahead)? If not served: CFTC API through the program (§6.2) | Phase 9 |
+| 10 | COT for DE40 (Eurex) and XBRUSD (ICE Europe Brent) is not in the CFTC report: leave them without a COT row, or use WTI as a stand-in for Brent? SOLUSD's CME Micro SOL is reported but small — useful? | Phase 9 |
 
 ## 14. Glossary
 
@@ -275,12 +349,17 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 - **Annualised** — scaled to one year; divide by √(days per year) for one day.
 - **Open interest (OI)** — the number of option contracts still open at a strike; updated once a day.
 - **Gamma** — how fast an option's delta changes with price; dealers who are short gamma must chase moves, long gamma damps them.
+- **Call wall / put wall** — the strike with the most call / put gamma; on the chart **Price Stall** / **Bounce Back** (§7.1).
+- **Gamma flip** — the price where dealers' total gamma changes sign; on the chart **Speed Up**: below it moves tend to be faster and bigger.
+- **COT (Commitments of Traders)** — the CFTC's weekly report of how large traders are positioned in US futures; positions as of Tuesday, released Friday.
+- **COT Index** — where this week's net position sits in its 3-year range, 0 (most short) to 100 (most long).
+- **Leveraged funds / asset managers / managed money** — COT's groups: hedge funds and fast traders / pension and mutual funds / commodity funds.
 - **Pine Script** — TradingView's language for indicators; runs on TradingView's servers on the chart's data.
 - **Repainting** — an indicator changing values on past bars after the fact; Levels' lines must not.
 
 ## 15. Background
 
-The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct-2026: GammaLens (live gamma positioning: TCS, TPS, TGS, bull/bear pivot), OptionsLens (daily open-interest snapshot at 7:30 ET) and Daily Implied Move (the day's expected range), sold as the 2nd Skies Terminal ($249/year) or with the PFP course ($999–$1,499/year). The owner is a former student of the method. Levels reproduces the public-data arithmetic, not the products.
+The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct-2026: GammaLens (live gamma positioning: TCS, TPS, TGS, bull/bear pivot), OptionsLens (daily open-interest snapshot at 7:30 ET) and Daily Implied Move (the day's expected range), sold as the 2nd Skies Terminal ($249/year) or with the PFP course ($999–$1,499/year). The owner is a former student of the method. Levels reproduces the public-data arithmetic, not the products. The plain-language labels (§7.1) and the COT bias (§6.2) were added at the owner's request on 29-Oct-2026.
 
 ## 16. History
 
@@ -293,3 +372,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 | v1.4 | 28 Oct 2026 | Alpha Vantage's options chain is premium on a free key; Alpha Vantage source and key handling removed. Phase 2 done on crypto only (owner's decision); §13 q4 reopened with what was tried and MarketData.app as the next candidate |
 | v1.5 | 29 Oct 2026 | Repository made public (owner); no secrets in its history |
 | v1.6 | 29 Oct 2026 | US options source: MarketData.app chosen (§13 q4 answered, decision 9), check results in §6.1 — end-of-day SPY chain with open interest for 1 credit per expiry, IV and gamma computed by Levels; 1-year history limit on Free/Trial. No code yet |
+| v1.7 | 29 Oct 2026 | Refined for the owner: gamma lines in plain language — Price Stall, Bounce Back, Magnet, Speed Up with a shaded speed-up zone and a Mood row; Phase 1 range lines labelled Normal range / Stretched (§7.1, decision 10). COT added as Phase 9: weekly big-money bias in the table from TradingView's COT data, CFTC API as fallback (§6.2, decision 11; §13 q8–10). Phase 3 covers SPY, QQQ, GLD and BTC/ETH; Phase 5 counts how often the labels held; suggested build order 9 → 2 (SPY) → 3. No code yet |

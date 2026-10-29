@@ -1,8 +1,8 @@
 # Levels
 
-**The day's expected range — and, later, where the big option positions sit — drawn on your TradingView chart before you trade.**
+**The day's expected range, and later where price may stall, bounce or speed up and which way big money leans this week, drawn on your TradingView chart before you trade.**
 
-A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symbol: from the options market's own forecast (VIX, VXN, GVZ, OVX …) where one exists, from the last 20 days' candles otherwise. Later phases add a small Ubuntu program that reads option chains (Deribit, a US source) and turns them into gamma levels (TCS, TPS, TGS, gamma flip) in the prices of your CFDs. Levels never trades.
+A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symbol: from the options market's own forecast (VIX, VXN, GVZ, OVX …) where one exists, from the last 20 days' candles otherwise. Later phases add a small Ubuntu program that reads option chains (Deribit, a US source) and turns them into gamma levels in the prices of your CFDs, drawn as plain-language lines: **Price Stall**, **Bounce Back**, **Magnet** and **Speed Up**. Phase 9 adds the week's big-money bias from the COT report to the indicator's table. Levels never trades.
 
 | Item | Value |
 |---|---|
@@ -19,12 +19,13 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 | 0 | Repo and spec | Done |
 | 1 | Expected range (Pine) | Done 28-Oct-2026 |
 | 2 | Options data check | Done 28-Oct-2026 on crypto; US source chosen 29-Oct-2026 (MarketData.app) |
-| 3 | Gamma levels + morning line | — |
+| 3 | Gamma levels as plain-language lines (Price Stall, Bounce Back, Magnet, Speed Up) + morning line | — |
 | 4 | Morning report (JSON + HTML, timer) | — |
 | 5 | Calibration (how well the ranges held) | — |
 | 6 | Alerts | — |
 | 7 | Intraday crypto gamma | — |
 | 8 | TM link (optional, in Trader) | — |
+| 9 | Weekly bias (COT) | — (can be built next) |
 
 Details and acceptance checks: [spec §10](docs/spec.md#10-phases).
 
