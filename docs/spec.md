@@ -5,9 +5,9 @@
 | Item | Value |
 |---|---|
 | Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; no free US options source found yet (§13 question 4, open) |
-| Document version | v1.4 (28-Oct-2026) — history in §16 |
+| Document version | v1.5 (29-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
-| Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (private) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
+| Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (public) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
 | Program (from Phase 2) | C# / .NET 10 console tool on the Ubuntu laptop; data folder `~/levels/` |
 | Related | Trader's Audit Bot measures the same brokers' spreads; TM manages the trades you open. Levels shares no code with Trader and changes nothing there |
@@ -278,3 +278,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 | v1.2 | 28 Oct 2026 | Phase 2 specified (§6.1) and written: `levels fetch` for Deribit BTC/ETH and Tradier SPY; Tradier chosen as the US source (§13 q4); straddle → σ by the exact relation instead of × 0.85 |
 | v1.3 | 28 Oct 2026 | US options source changed from Tradier to Alpha Vantage (Tradier refuses Pakistan residents): end-of-day SPY chain plus the daily close, time to expiry counted from the chain's close (§6.1, §13 q4) |
 | v1.4 | 28 Oct 2026 | Alpha Vantage's options chain is premium on a free key; Alpha Vantage source and key handling removed. Phase 2 done on crypto only (owner's decision); §13 q4 reopened with what was tried and MarketData.app as the next candidate |
+| v1.5 | 29 Oct 2026 | Repository made public (owner); no secrets in its history |
