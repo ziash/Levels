@@ -6,7 +6,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 done on crypto** — `levels fetch` works on Deribit BTC/ETH; no free US options source yet ([spec §13 q4](docs/spec.md#13-open-questions)) |
+| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 done on crypto** — `levels fetch` works on Deribit BTC/ETH; US options source chosen 29-Oct-2026: MarketData.app ([spec §6.1](docs/spec.md#61-phase-2-levels-fetch)); SPY fetch not yet written |
 | Specification | [docs/spec.md](docs/spec.md) — the single source of truth (idea, method, phases, open questions, history) |
 | Indicator | [pine/Levels.pine](pine/Levels.pine) — Pine Script v6 |
 | Runs on | TradingView in the browser (Ubuntu or Windows); the program (from Phase 2) on Ubuntu, .NET 10 |
@@ -18,7 +18,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 |---|---|---|
 | 0 | Repo and spec | Done |
 | 1 | Expected range (Pine) | Done 28-Oct-2026 |
-| 2 | Options data check | Done 28-Oct-2026 on crypto only; US source open |
+| 2 | Options data check | Done 28-Oct-2026 on crypto; US source chosen 29-Oct-2026 (MarketData.app) |
 | 3 | Gamma levels + morning line | — |
 | 4 | Morning report (JSON + HTML, timer) | — |
 | 5 | Calibration (how well the ranges held) | — |

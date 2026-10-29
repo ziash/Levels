@@ -4,8 +4,8 @@
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; no free US options source found yet (§13 question 4, open) |
-| Document version | v1.5 (29-Oct-2026) — history in §16 |
+| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; US options source chosen 29-Oct-2026: **MarketData.app** (§6.1, §13 question 4); SPY not yet in `levels fetch` |
+| Document version | v1.6 (29-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
 | Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (public) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
@@ -152,9 +152,21 @@ A console command on the Ubuntu laptop (`dotnet run --project src/Levels -- fetc
 | Underlying | Source | Key | What is fetched |
 |---|---|---|---|
 | BTC, ETH | Deribit public API (`www.deribit.com/api/v2/public/`), real time | none | `get_book_summary_by_currency` (every option: open interest, mark price, mark IV, underlying price) — one request per currency; `get_volatility_index_data` (latest DVOL, to compare with Phase 1) |
-| SPY | **None yet** — §13 question 4 is open. Tradier (v1.2) and Alpha Vantage (v1.3) were written and removed: see there | — | — |
+| SPY | **MarketData.app** (`api.marketdata.app/v1/`), chosen 29-Oct-2026 (§13 question 4). Not yet written | `MARKETDATA_TOKEN` in `~/.config/levels/secrets.env`, sent as `Authorization: Bearer` (never in the URL) | `options/chain/SPY/?date=<previous US session>&expiration=<expiry>` — the end-of-day chain: every strike of one expiry with bid/ask/mid, open interest, volume and the SPY price; **no IV or greeks**, so Levels derives IV (and in Phase 3 gamma) from the mid prices. 1 credit per 1,000 contracts, i.e. 1 credit per expiry. Front, next and monthly expiry ≈ 3 credits a day |
 
 Strike and expiry of a Deribit option come from its name (`BTC-31OCT26-87000-C` = call, strike 87,000, expiry 31-Oct-2026 08:00 UTC). The chain code keeps a trading-session day count (16:00 New York expiry, weekdays 09:30–16:00) ready for a US source.
+
+**MarketData.app check (29-Oct-2026)** — the owner's account (trial, 10,000 credits a day; the free plan is 100), 7 requests, 13 credits:
+
+| Request | Credits | Result |
+|---|---|---|
+| SPY quote; SPY expiries | 1 each | 35 expiries, the first 29-Oct-2026 (same-day expiries included) |
+| Chain with `date=2026-10-28`, expiry 30-Oct, all strikes | 1 | 498 contracts; open interest, volume, bid/ask/mid, SPY price; IV and greeks empty |
+| Same, expiry 20-Nov | 1 | 474 contracts |
+| Chain without `date` (latest), 8 contracts | 8 | IV, delta, gamma, theta, vega filled — but 1 credit **per contract** (≈ 500 per expiry), and still the 28-Oct close (20:00 UTC), not live |
+| Chain with `date=2025-10-28` | 0 | Refused: "Free/Trial users can only access up to 1 year of data" |
+
+Answers come with HTTP 203 (data from MarketData.app's cache) and `x-api-ratelimit-*` headers (limit, remaining, consumed) — `levels fetch` prints the credits used.
 
 **Saved** — the raw answers, unchanged, in `~/levels/snapshots/<yyyy-MM-dd>/` (UTC date): `deribit-BTC-<HHmmss>.json`, `deribit-ETH-…`. Later phases and tests can re-read a snapshot without going online.
 
@@ -206,6 +218,7 @@ The indicator converts the strikes into the chart's prices with a **live ratio**
 | 6 | Implied σ from the previous session's index value; historical σ from completed days only | Lines are known before the day and never repaint |
 | 7 | Yang–Zhang, 20 days, equal weights for the historical range | Uses the whole candle and the overnight gap; recency weighting is a Phase 5 option once there is data to judge it |
 | 8 | Strike levels converted with a live ratio inside Pine (Phase 3) | The ratio is measured from the same chart the owner trades; no cTrader connection needed |
+| 9 | US options from MarketData.app's end-of-day chain (`date=` the previous session), with IV and gamma computed by Levels — not its chain with ready-made greeks (29-Oct-2026) | 1 credit per expiry instead of ~500, so a day fits the free plan's 100 credits; open interest changes once a day anyway, so yesterday's close is the right input for morning levels |
 
 ## 9. Technology
 
@@ -221,7 +234,7 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 |---|---|---|---|---|
 | 0 | Repo and spec | This document, README, CLAUDE.md | Owner reviews | **Done 27-Oct-2026** |
 | 1 | Expected range | `pine/Levels.pine`: §5 — implied or historical σ, ±1σ/±2σ lines per day, table | Owner adds it in TradingView on US500, USTEC, XAUUSD, EURUSD, BTCUSD; it compiles; the table names the source; the volatility symbols of §4 are found or the list is corrected; one day's numbers checked by hand | **Done 28-Oct-2026** — results §5.6 |
-| 2 | Options data check | `levels fetch` (§6.1): download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print the straddle σ, top OI strikes and expiries, put/call balance | Snapshots saved; straddle σ within reason of Phase 1's implied σ; US source chosen and recorded (§13) | **Done 28-Oct-2026 on crypto only** (owner's decision) — Deribit: first run §6.1, straddle ÷ DVOL 0.88–0.89. US source not found (§13 q4, open); US500 keeps VIX1D for its range (§5.6) |
+| 2 | Options data check | `levels fetch` (§6.1): download one snapshot of Deribit BTC/ETH and one US source (SPY), save it raw to `~/levels/snapshots/`, print the straddle σ, top OI strikes and expiries, put/call balance | Snapshots saved; straddle σ within reason of Phase 1's implied σ; US source chosen and recorded (§13) | **Done 28-Oct-2026 on crypto only** (owner's decision) — Deribit: first run §6.1, straddle ÷ DVOL 0.88–0.89. US source chosen 29-Oct-2026: MarketData.app (§6.1, decision 9); SPY in `levels fetch` not yet written. US500 keeps VIX1D for its range (§5.6) |
 | 3 | Gamma levels | Gamma by strike, TCS/TPS/TGS, flip, front and next expiry; the morning line (§7); the indicator's paste box and strike lines with the live ratio | Calculations match a hand-worked example in the tests; lines appear at the right US500 prices | — |
 | 4 | Morning report | JSON + HTML page per day in `~/levels/reports/`; systemd timer before the London and New York opens; layout possibly designed with Claude Design | Report on screen before the open for a week | — |
 | 5 | Calibration | From history, per symbol: how often the day closed inside ±1σ; how often ±1σ and ±2σ were touched; how often a ±1σ break went on to reach ±2σ; how often ±2σ held on closes. Implied vs historical σ and a per-symbol multiplier for the 30-day indices (§5.6, §13 question 7); wider range on NFP/CPI/central-bank days; recency weighting tried | Hit rates per symbol in a table; ranges adjusted where they were off | — |
@@ -249,7 +262,7 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | 1 | ~~Exact TradingView names on the owner's plan~~ — mostly answered 28-Oct-2026 (§5.6): `CBOE:VIX1D`, `CBOE:VXN`, `CBOE:GVZ`, `DERIBIT:DVOL` found on the free plan. Still to try: `TVC:VIX` (fallback), `CBOE:OVX`, `DERIBIT:ETHDVOL`, a DAX volatility index (VDAX / VSTOXX) | Oil, ETH, DE40 |
 | 2 | TradingView plan (the owner's is free): the four indices of §5.6 are available; still to check: indicators per chart, alerts | Phase 6 |
 | 3 | Does IC Markets' (and Pepperstone's) TradingView connection trade on the **same cTrader account**? If not, TM does not see trades placed from TradingView | Trading from TradingView (not Levels itself) |
-| 4 | **US options source — open** (reopened 28-Oct-2026, v1.4). Needed for US strike and gamma levels (Phase 3 on US500/USTEC/gold); the expected range does not need it (VIX1D, §5.6). Tried: **Tradier** (v1.2) does not open accounts for residents of Pakistan; **Alpha Vantage** (v1.3) — `HISTORICAL_OPTIONS` is premium on a free key (the `demo` key serves it for IBM only, which hid this; refused 28-Oct-2026). Ruled out earlier: yfinance (unofficial scraping), CBOE's delayed JSON (refused a plain request on 27-Oct-2026). Massive (Polygon) shows no free options plan. **Next candidate: MarketData.app** — free plan 100 credits a day, no card; a historical chain (`date`) costs 1 credit per 1,000 contracts and has OI and bid/ask but no IV/greeks (Levels would derive IV from prices); free-plan behaviour and Pakistan sign-up not checked | Phase 3 (US) |
+| 4 | ~~US options source~~ — **answered 29-Oct-2026: MarketData.app** (§6.1 check, decision 9). Sign-up from Pakistan worked; the end-of-day SPY chain costs 1 credit per expiry with open interest and bid/ask (IV and gamma computed by Levels). Earlier tries: Tradier (v1.2) does not open accounts for residents of Pakistan; Alpha Vantage (v1.3) `HISTORICAL_OPTIONS` is premium on a free key; yfinance (unofficial scraping) and CBOE's delayed JSON ruled out; Massive (Polygon) has no free options plan. **Still to check:** what the free plan gives when the trial ends (credits, delay); the 1-year history limit caps Phase 5's back-test for US symbols; Levels' own gamma vs MarketData.app's | Phase 3 (US), Phase 5 |
 | 5 | Anchor of the range for US indices: the CFD's daily open (now) or the 09:30 New York cash open | Phase 5 |
 | 6 | Where the morning line goes besides the paste box (file, Telegram) | Phase 4 |
 | 7 | The 30-day indices (VXN, GVZ) give σ about 45 % above realised, VIX1D does not (§5.6). Scale them per symbol (e.g. a list line `USTEC=CBOE:VXN*0.7`), or derive USTEC from VIX1D × VXN ÷ VIX? Decided from Phase 5's hit rates | Phase 5 |
@@ -279,3 +292,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 | v1.3 | 28 Oct 2026 | US options source changed from Tradier to Alpha Vantage (Tradier refuses Pakistan residents): end-of-day SPY chain plus the daily close, time to expiry counted from the chain's close (§6.1, §13 q4) |
 | v1.4 | 28 Oct 2026 | Alpha Vantage's options chain is premium on a free key; Alpha Vantage source and key handling removed. Phase 2 done on crypto only (owner's decision); §13 q4 reopened with what was tried and MarketData.app as the next candidate |
 | v1.5 | 29 Oct 2026 | Repository made public (owner); no secrets in its history |
+| v1.6 | 29 Oct 2026 | US options source: MarketData.app chosen (§13 q4 answered, decision 9), check results in §6.1 — end-of-day SPY chain with open interest for 1 credit per expiry, IV and gamma computed by Levels; 1-year history limit on Free/Trial. No code yet |
