@@ -6,7 +6,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 done on crypto** — `levels fetch` works on Deribit BTC/ETH; US options source chosen 29-Oct-2026: MarketData.app ([spec §6.1](docs/spec.md#61-phase-2-levels-fetch)); SPY fetch not yet written |
+| Status | **Phase 1 done** (28-Oct-2026) — expected-range indicator checked on US500, USTEC, XAUUSD, EURUSD, BTCUSD ([results](docs/spec.md#56-phase-1-check-28-oct-2026)); **Phase 2 done on crypto** — `levels fetch` works on Deribit BTC/ETH; US options source chosen 29-Oct-2026: MarketData.app ([spec §6.1](docs/spec.md#61-phase-2-levels-fetch)); SPY fetch not yet written; **Phase 9 done** (31-Oct-2026) — the table's Big money row gives the weekly COT bias ([spec §6.2](docs/spec.md#62-weekly-bias-cot-phase-9)) |
 | Specification | [docs/spec.md](docs/spec.md) — the single source of truth (idea, method, phases, open questions, history) |
 | Indicator | [pine/Levels.pine](pine/Levels.pine) — Pine Script v6 |
 | Runs on | TradingView in the browser (Ubuntu or Windows); the program (from Phase 2) on Ubuntu, .NET 10 |
@@ -25,7 +25,7 @@ A Pine Script indicator draws today's open, ±1σ and ±2σ for the chart's symb
 | 6 | Alerts | — |
 | 7 | Intraday crypto gamma | — |
 | 8 | TM link (optional, in Trader) | — |
-| 9 | Weekly bias (COT) | — (can be built next) |
+| 9 | Weekly bias (COT) | Done 31-Oct-2026 |
 
 Details and acceptance checks: [spec §10](docs/spec.md#10-phases).
 

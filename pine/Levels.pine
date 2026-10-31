@@ -1,10 +1,13 @@
 //@version=6
-// Levels spec v1.0 — Phase 1: expected daily range (docs/spec.md §5). Master copy: github.com/ziash/Levels, pine/Levels.pine
+// Levels spec v1.8 — Phase 1: expected daily range (docs/spec.md §5); Phase 9: weekly COT bias (§6.2). Master copy: github.com/ziash/Levels, pine/Levels.pine
 indicator("Levels — expected range", shorttitle = "Levels", overlay = true)
+
+import TradingView/LibraryCOT/6 as cot
 
 // ── Settings (spec §5.4) ─────────────────────────────────────────────────────────────────────
 string G_SRC  = "Range source"
 string G_SHOW = "Display"
+string G_COT  = "Weekly bias (COT)"
 
 string srcMode  = input.string("Auto", "Range source", options = ["Auto", "Implied only", "Historical only"], group = G_SRC,
      tooltip = "Auto: implied where a volatility index is listed and has data, historical otherwise (spec §5.2, §5.3)")
@@ -22,6 +25,17 @@ bool  showTable = input.bool(true, "Show table", group = G_SHOW)
 color colOpen   = input.color(color.gray, "Open", group = G_SHOW)
 color col1      = input.color(color.orange, "±1σ", group = G_SHOW)
 color col2      = input.color(color.red, "±2σ", group = G_SHOW)
+
+bool   showCot  = input.bool(true, "Show big-money bias (COT)", group = G_COT)
+string cotList  = input.text_area("US500=F:13874A\nUSTEC=F:209742\nNAS100=F:209742\nXAUUSD=D:088691\nXAGUSD=D:084691\nXTIUSD=D:067651\nSPOTCRUDE=D:067651\nXNGUSD=D:023651\nXPTUSD=D:076651\nEURUSD=F:099741\nGBPUSD=F:096742\nAUDUSD=F:232741\nUSDJPY=,F:097741\nEURGBP=F:099741,F:096742\nEURJPY=F:099741,F:097741\nGBPJPY=F:096742,F:097741\nAUDJPY=F:232741,F:097741\nBTCUSD=F:133741\nETHUSD=F:146021\nSOLUSD=F:177742",
+     "COT market per symbol", group = G_COT,
+     tooltip = "TICKER=BASE,QUOTE. A leg is REPORT:CFTC code; F = Financial (TFF), D = Disaggregated. One leg = that market; two legs = a cross scored base − quote; an empty base (USDJPY=,F:097741) = the quote leg turned round (spec §6.2)")
+string cotForce = input.string("", "COT market (override)", group = G_COT, tooltip = "For this chart only, e.g. D:088691 or F:096742,F:097741; empty = use the list")
+string finGroup = input.string("Leveraged Funds", "Big money in Financial markets", options = ["Leveraged Funds", "Asset Manager", "Dealer", "Other Reportable"], group = G_COT,
+     tooltip = "Indices, currencies, crypto (spec §6.2, §13 q8)")
+string disGroup = input.string("Managed Money", "Big money in commodities", options = ["Managed Money", "Producer Merchant", "Swap"], group = G_COT,
+     tooltip = "Gold, silver, oil, gas, platinum (spec §6.2, §13 q8)")
+int    cotWeeks = input.int(156, "COT Index: weeks", minval = 26, maxval = 520, group = G_COT, tooltip = "Range for the 0–100 index; 156 = 3 years")
 
 // ── Which volatility index belongs to this chart (spec §5.2) ──────────────────────────────────
 // The list line for this ticker without "TICKER=", e.g. "CBOE:VIX1D|TVC:VIX"; "" if the ticker is not listed.
@@ -47,6 +61,75 @@ float         perYear  = entryN.size() > 1 ? nz(str.tonumber(entryN.get(1)), flo
 // chart's own symbol is requested instead (always valid) and ignored. A missing symbol gives na, not an error.
 float idxA = request.security(hasIndex ? volSymA : syminfo.tickerid, timeframe.period, close, ignore_invalid_symbol = true)
 float idxB = request.security(hasIndex ? volSymB : syminfo.tickerid, timeframe.period, close, ignore_invalid_symbol = true)
+
+// ── Weekly big-money bias from the COT report (spec §6.2) ─────────────────────────────────────────
+string        cotEntry = cotForce != "" ? str.upper(str.replace_all(cotForce, " ", "")) : listEntry(cotList, str.upper(syminfo.ticker))
+array<string> cotLegs  = str.split(cotEntry, ",")
+string        legA     = cotLegs.size() > 0 ? cotLegs.get(0) : ""
+string        legB     = cotLegs.size() > 1 ? cotLegs.get(1) : ""
+bool          hasA     = str.length(legA) > 2
+bool          hasB     = str.length(legB) > 2
+
+// TradingView's COT ticker for one leg ("F:13874A"); the chart's own symbol stands in for a missing leg and is ignored.
+cotTicker(string leg, string direction) =>
+    if str.length(leg) > 2
+        string report = str.substring(leg, 0, 1) == "D" ? "Disaggregated" : "Financial"
+        string metric = (report == "Financial" ? finGroup : disGroup) + " Positions"
+        cot.COTTickerid(report, str.substring(leg, 2), false, metric, direction, "All")
+    else
+        syminfo.tickerid
+
+string longA  = cotTicker(legA, "Long")
+string shortA = cotTicker(legA, "Short")
+string longB  = cotTicker(legB, "Long")
+string shortB = cotTicker(legB, "Short")
+
+// One leg on the weekly timeframe: COT Index 0–100 = where the net position (long − short) sits in its range of the
+// last cotWeeks weeks; also last week's index and the report's time.
+cotLeg(string longT, string shortT) =>
+    float lng = request.security(longT, "W", close, ignore_invalid_symbol = true)
+    float sht = request.security(shortT, "W", close, ignore_invalid_symbol = true)
+    int   rep = request.security(longT, "W", time, ignore_invalid_symbol = true)
+    float net = lng - sht
+    float hi  = ta.highest(net, cotWeeks)
+    float lo  = ta.lowest(net, cotWeeks)
+    float idx = na(net) or na(hi) or na(lo) ? na : hi == lo ? 50.0 : (net - lo) / (hi - lo) * 100
+    [idx, idx[1], rep]
+
+cotBoth() =>
+    [iA, pA, tA] = cotLeg(longA, shortA)
+    [iB, pB, tB] = cotLeg(longB, shortB)
+    [iA, pA, tA, iB, pB, tB]
+
+// Requested on the chart symbol's weekly bars without lookahead: a week's report reaches past bars only when that week has
+// closed (after the Friday release), so nothing is used before it was published (spec §6.2).
+[cotIA, cotPA, cotTA, cotIB, cotPB, cotTB] = request.security(syminfo.tickerid, "W", cotBoth())
+
+// Score: one leg = its index (0–100); a cross = base − quote (−100 … +100); an empty base = the quote leg turned round.
+bool  cotCross = hasA and hasB
+float cotNow   = cotCross ? cotIA - cotIB : hasA ? cotIA : hasB ? 100 - cotIB : na
+float cotPrev  = cotCross ? cotPA - cotPB : hasA ? cotPA : hasB ? 100 - cotPB : na
+int   cotTime  = hasA ? cotTA : cotTB
+
+cotWords(float now, float prev, bool cross) =>
+    float hiX = cross ? 60.0 : 90.0     // crowded long at or above
+    float hiB = cross ? 20.0 : 60.0     // buying at or above, while rising
+    float loB = cross ? -20.0 : 40.0    // selling at or below, while falling
+    float loX = cross ? -60.0 : 10.0    // crowded short at or below
+    bool rising  = not na(prev) and math.round(now) > math.round(prev)   // whole numbers, as shown
+    bool falling = not na(prev) and math.round(now) < math.round(prev)
+    na(now) ? "" : now >= hiX ? "Crowded long — late to buy" : now >= hiB and rising ? "Buying" :
+         now <= loX ? "Crowded short — late to sell" : now <= loB and falling ? "Selling" : "Neutral"
+
+cotText() =>
+    if not (hasA or hasB)
+        "no COT market listed"
+    else if na(cotNow)
+        "no COT data for " + cotEntry
+    else
+        string arrow = na(cotPrev) or math.round(cotNow) == math.round(cotPrev) ? "→" : cotNow > cotPrev ? "↑" : "↓"
+        string value = cotCross ? (cotNow >= 0 ? "+" : "") + str.tostring(cotNow, "0") : str.tostring(cotNow, "0")
+        cotWords(cotNow, cotPrev, cotCross) + "  (COT " + value + " " + arrow + ", " + str.format_time(cotTime + 86400000, "dd-MMM", "UTC") + ")"   // weekly bar opens Monday; the report is Tuesday's
 
 // ── Historical σ: Yang–Zhang over the last n completed days (spec §5.3) ─────────────────────────
 yangZhang(int n) =>
@@ -99,7 +182,7 @@ plot(draw and show2 ? dn2 : na, "−2σ", col2, 1, plot.style_linebr)
 fmtPct(float x) => na(x) ? "—" : str.tostring(x * 100, "0.00") + " %"
 fmtPx(float x) => na(x) ? "—" : str.tostring(x, format.mintick)
 
-var table tbl = table.new(position.top_right, 2, 6, bgcolor = color.new(color.gray, 85), border_width = 1)
+var table tbl = table.new(position.top_right, 2, 7, bgcolor = color.new(color.gray, 85), border_width = 1)
 
 cell(int row, string label, string value) =>
     table.cell(tbl, 0, row, label, text_color = chart.fg_color, text_size = size.small, text_halign = text.align_left)
@@ -107,7 +190,9 @@ cell(int row, string label, string value) =>
 
 if showTable and barstate.islast
     if not timeframe.isintraday
-        cell(0, "Levels", "use an intraday chart")
+        cell(0, "Levels", "range: use an intraday chart")
+        if showCot
+            cell(1, "Big money", cotText())
     else
         string srcText   = srcName == "implied" ? "implied " + dayIdxSym + " " + str.tostring(dayIdx, "0.00") : "historical " + str.tostring(histDays) + " d"
         string otherText = srcName == "implied" ? "historical " + fmtPct(sigHist) :
@@ -120,3 +205,5 @@ if showTable and barstate.islast
         cell(3, "±2σ", show2 ? fmtPx(dn2) + " – " + fmtPx(up2) : "hidden")
         cell(4, "Now", na(nowSig) ? "—" : (nowSig >= 0 ? "+" : "") + str.tostring(nowSig, "0.0") + "σ from open")
         cell(5, "Compare", otherText)
+        if showCot
+            cell(6, "Big money", cotText())

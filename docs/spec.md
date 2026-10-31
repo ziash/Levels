@@ -4,8 +4,8 @@
 
 | Item | Value |
 |---|---|
-| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; US options source chosen 29-Oct-2026: **MarketData.app** (§6.1, §13 question 4); SPY not yet in `levels fetch`. **v1.7:** gamma lines get plain-language labels — Price Stall, Bounce Back, Magnet, Speed Up (§7); weekly big-money bias from COT added as Phase 9 (§6.2) |
-| Document version | v1.7 (29-Oct-2026) — history in §16 |
+| Status | **Phase 1 done** (28-Oct-2026): the expected-range indicator runs on the owner's TradingView; results in §5.6. **Phase 2 done on crypto** (28-Oct-2026): `levels fetch` (§6.1) checked live on Deribit BTC/ETH; US options source chosen 29-Oct-2026: **MarketData.app** (§6.1, §13 question 4); SPY not yet in `levels fetch`. **v1.7:** gamma lines get plain-language labels — Price Stall, Bounce Back, Magnet, Speed Up (§7); weekly big-money bias from COT added as Phase 9 (§6.2). **Phase 9 done** (31-Oct-2026): the COT row runs on the owner's TradingView (free plan) and matches the CFTC's numbers (§6.2.1) |
+| Document version | v1.8 (31-Oct-2026) — history in §16 |
 | Owner | Zeeshan |
 | Repository | [github.com/ziash/Levels](https://github.com/ziash/Levels) (public) — separate from [Trader](https://github.com/ziash/Trader) and [Rewind](https://github.com/ziash/Rewind) |
 | Display | TradingView in the browser (Ubuntu or Windows), as a Pine Script indicator (`pine/Levels.pine`) |
@@ -23,7 +23,7 @@ A morning with Levels:
 1. Open the US500 chart in TradingView. The indicator has already drawn today's range: the open, ±1σ (where price closes on about two days in three) and ±2σ (stretched).
 2. The table in the corner says where the range came from (e.g. "implied, VIX 15.2") and where price sits now ("+0.7σ").
 3. From Phase 3: paste the morning line from the Levels program into the indicator. Four lines appear, already in US500 prices and labelled in plain words (§7): **Price Stall** (where a rise tends to stall), **Bounce Back** (where a fall tends to bounce), **Magnet** (where price tends to drift and stick) and **Speed Up** (below it, moves get faster and bigger).
-4. From Phase 9: the table also says which way big money leaned in this week's COT report, e.g. "Big money: buying (COT 74 ↑)" or "Crowded long — late to buy" (§6.2).
+4. From Phase 9: the table also says which way big money leaned in the latest COT report, e.g. "Big money: Buying (COT 74 ↑, 27-Oct)" or "Crowded long — late to buy" (§6.2).
 5. Look for your price-action setups at those levels. A short from a supply zone that lines up with +1σ and Price Stall, in a week when big money is selling, has more behind it than one in the middle of the range.
 
 Three speeds: **COT** = the lean over weeks (1D/4H bias), **range and gamma lines** = today's map, **your setup** (or Scout) = the entry.
@@ -111,7 +111,7 @@ For symbols without a volatility index (or when the index is missing): the **Yan
 
 ### 5.5 The table
 
-Top right, on intraday charts: the source used (`implied CBOE:VIX1D 14.8` or `historical 20 d`), σ in percent and points, today's ±1σ band, where price is now in σ from the open (`+0.7σ`), and the other source's σ for comparison.
+Top right, on intraday charts: the source used (`implied CBOE:VIX1D 14.8` or `historical 20 d`), σ in percent and points, today's ±1σ band, where price is now in σ from the open (`+0.7σ`), and the other source's σ for comparison. From Phase 9 a last row, **Big money**, gives the COT bias (§6.2) — on every timeframe.
 
 ### 5.6 Phase 1 check (28-Oct-2026)
 
@@ -204,7 +204,7 @@ The often-quoted "straddle × 0.85" is a rule of thumb for the expected move; Le
 
 The **Commitments of Traders (COT)** report is published by the US futures regulator (CFTC) every week: positions as of **Tuesday**, released **Friday 15:30 New York**. It shows how the large traders in each US futures market are positioned. Levels turns it into one plain-language row in the table: which way big money leans, and whether that side is crowded. It is a slow read for the 1D/4H bias, never an entry signal.
 
-**Source.** TradingView carries the COT data as special tickers (`COT…`, built with TradingView's own *LibraryCOT* Pine library) that `request.security()` can read, so Phase 9 lives inside `Levels.pine` like Phase 1 — no program. Fallback if the owner's plan does not serve them (§13 q9): the Levels program fetches the CFTC's public API (`publicreporting.cftc.gov`, no key) and the values travel in the morning line. Checked 29-Oct-2026 on the CFTC API: E-mini S&P 500 report of 20-Oct (Traders in Financial Futures: asset managers long 1.10 M / short 0.20 M; leveraged funds net short ≈ 371 k) and gold (Disaggregated: managed money long 121 k / short 17 k).
+**Source.** TradingView carries the COT data as special tickers, built with TradingView's own library `TradingView/LibraryCOT/6` (`cot.COTTickerid(report, code, false, "<Group> Positions", "Long"/"Short", "All")` — futures only, as in the CFTC's futures-only reports), that `request.security()` can read, so Phase 9 lives inside `Levels.pine` like Phase 1 — no program. Works on the owner's free plan (§6.2.1). Fallback if the owner's plan does not serve them (§13 q9): the Levels program fetches the CFTC's public API (`publicreporting.cftc.gov`, no key) and the values travel in the morning line. Checked 29-Oct-2026 on the CFTC API: E-mini S&P 500 report of 20-Oct (Traders in Financial Futures: asset managers long 1.10 M / short 0.20 M; leveraged funds net short ≈ 371 k) and gold (Disaggregated: managed money long 121 k / short 17 k).
 
 **Markets and the group that counts as "big money"** (defaults; a setting per symbol, §13 q8):
 
@@ -235,14 +235,32 @@ All codes checked on the CFTC API on 29-Oct-2026: each has a report of 20-Oct-20
 | COT Index (or cross score) | Words |
 |---|---|
 | ≥ 90 (≥ +60) | **Crowded long — late to buy** |
-| 60–89 and rising (+20 … +59) | **Big money buying** |
-| 11–39 and falling (−20 … −59) | **Big money selling** |
+| 60–89 and rising (+20 … +59) | **Buying** |
+| 11–40 and falling (−20 … −59) | **Selling** |
 | ≤ 10 (≤ −60) | **Crowded short — late to sell** |
 | otherwise | **Neutral** |
 
-Plus the index or score, the arrow, and the report date: `Big money: buying (COT 74 ↑, 20-Oct)`. A crowded side is a warning that the trend is late, not a signal to turn.
+The row is labelled **Big money**; after the words come the index or score, the arrow, and the report date: `Big money | Selling (COT 38 ↓, 20-Oct)`. Rising and falling compare the whole numbers shown, so 100 → 100 is "→". A crowded side is a warning that the trend is late, not a signal to turn. The row shows on every timeframe, including 1D and above, where the range rows say "use an intraday chart".
 
-**No look-ahead.** A report counts on the chart only from its Friday release, not from its Tuesday date, so past bars never use a number that was not yet published (checked in the Phase 9 build, §13 q9).
+**No look-ahead.** The COT values are requested on the chart symbol's **weekly** bars without lookahead (`request.security(syminfo.tickerid, "W", …)`, the COT tickers nested inside). A week's report reaches past bars only once that week has closed, i.e. after its Friday release, so nothing is used before it was published. The cost: the newest report appears when the chart's next weekly bar opens — Sunday evening for forex, gold and indices — while markets that trade at the weekend (crypto) show it as soon as TradingView has it. TradingView dates a COT week by its Monday; the table shows the report's own Tuesday.
+
+**Speed.** Importing the COT library makes the script compile in about 40 s in the Pine Editor (Phase 1 alone: a few seconds).
+
+#### 6.2.1 Phase 9 check (31-Oct-2026)
+
+On the owner's TradingView (free plan), 4H charts, Saturday 31-Oct-2026; expected values computed independently from the CFTC API (futures-only TFF and Disaggregated reports, same 156-report window):
+
+| Chart | Table | CFTC: COT Index (report 20-Oct, previous 13-Oct) | |
+|---|---|---|---|
+| ICMARKETS:XAUUSD | Selling (COT 38 ↓, 20-Oct) | gold managed money 37.9 (39.4) | match |
+| PEPPERSTONE:US500 | Neutral (COT 44 ↑) | E-mini S&P leveraged funds 44.1 (32.7) | match |
+| ICMARKETS:EURUSD | Crowded short — late to sell (COT 0 →) | euro 0.0 (0.0) | match |
+| ICMARKETS:GBPJPY | Neutral (COT −22 ↑) | pound 38.0 − yen 60.1 = −22.1 (−29.6) | match |
+| ICMARKETS:USDJPY | Selling (COT 40 ↓) | 100 − yen 60.1 = 39.9 (46.9) | match |
+| ICMARKETS:BTCUSD | Crowded long — late to buy (COT 100 →, 27-Oct) | CME Bitcoin 100.0 for 27-Oct (100.0) | match; crypto already shows the 27-Oct report (released 30-Oct), the weekday markets show it from Sunday |
+| ICMARKETS:XAUUSD 1D | range rows "use an intraday chart"; Big money row as on 4H | — | as designed |
+
+- First compile in the browser pane failed once with "Failed to fetch" after a page reload (the editor had lost its document); pasting the script again compiled it. Not a script error.
 
 ## 7. Gamma lines on the chart and the morning line (Phase 3)
 
@@ -309,16 +327,17 @@ Each phase is one enhancement, built only when the owner says so, and closed by 
 | 6 | Alerts | TradingView alerts when price reaches ±1σ, ±2σ, a gamma line, or crosses Speed Up | Alert fires on a test | — |
 | 7 | Intraday crypto gamma | Deribit gamma levels refreshed during the day | Levels update without a restart | — |
 | 8 | TM link (optional) | TM reads the day's σ for its hedge distance or a warning — built in the Trader repo under Trader's rules, on the owner's go | Agreed in Trader's TM document | — |
-| 9 | Weekly bias (COT) | §6.2 in `Levels.pine`: COT Index, weekly change, crosses from both legs, plain words and report date in the table; no look-ahead | Compiles on the owner's plan; for US500, XAUUSD, EURUSD, GBPJPY and BTCUSD the table matches the CFTC report of the same week, checked by hand; a past week's bias appears only from its Friday | — (needs nothing from Phases 2–8; can be built next) |
+| 9 | Weekly bias (COT) | §6.2 in `Levels.pine`: COT Index, weekly change, crosses from both legs, plain words and report date in the table; no look-ahead | Compiles on the owner's plan; for US500, XAUUSD, EURUSD, GBPJPY and BTCUSD the table matches the CFTC report of the same week, checked by hand; a past week's bias appears only from its Friday | **Done 31-Oct-2026** — results §6.2.1 |
 
-Phases need not be built in number order. Suggested next: **9** (Pine only, quick), then **2** for SPY, then **3**.
+Phases need not be built in number order. Suggested next: **2** for SPY, then **3**.
 
 ## 11. Using the indicator (Phase 1)
 
 1. In TradingView: open a chart of `ICMARKETS:US500` on an intraday timeframe (M5–H1).
 2. Pine Editor (bottom panel) → **Open → New indicator** → delete the template → paste the whole of `pine/Levels.pine` → **Save** (name it "Levels") → **Add to chart**.
 3. Settings (gear icon on the indicator): check the volatility list; the table shows whether the implied source was found.
-4. After an update in the repo: open the saved script in the Pine Editor, replace its text, save. The version in the first comment line shows which one is on the chart.
+4. After an update in the repo: open the saved script in the Pine Editor, replace its text, save. The version in the first comment line shows which one is on the chart. Since Phase 9 a compile takes about 40 s (the COT library).
+5. COT settings (group **Weekly bias (COT)**): the market list per symbol (`TICKER=F:code` or `D:code`, two legs for a cross), an override for one chart, which group counts as big money, and the index window (156 weeks).
 
 ## 12. Data and safety
 
@@ -338,7 +357,7 @@ Phases need not be built in number order. Suggested next: **9** (Pine only, quic
 | 6 | Where the morning line goes besides the paste box (file, Telegram) | Phase 4 |
 | 7 | The 30-day indices (VXN, GVZ) give σ about 45 % above realised, VIX1D does not (§5.6). Scale them per symbol (e.g. a list line `USTEC=CBOE:VXN*0.7`), or derive USTEC from VIX1D × VXN ÷ VIX? Decided from Phase 5's hit rates | Phase 5 |
 | 8 | Which COT group is "big money" per market (§6.2 defaults: leveraged funds for indices, currencies and crypto; managed money for commodities)? Asset managers or the Legacy report's non-commercials are the alternatives | Phase 9 |
-| 9 | Does the owner's TradingView plan serve the `COT…` tickers, and are they dated by the Tuesday report date (then shift to the Friday release to avoid look-ahead)? If not served: CFTC API through the program (§6.2) | Phase 9 |
+| 9 | ~~Does the owner's TradingView plan serve the COT tickers, and is there look-ahead?~~ — **answered 31-Oct-2026**: served on the free plan; requested on weekly bars without lookahead, a report reaches the chart only after its week closes (§6.2, §6.2.1) | Phase 9 |
 | 10 | COT for DE40 (Eurex) and XBRUSD (ICE Europe Brent) is not in the CFTC report: leave them without a COT row, or use WTI as a stand-in for Brent? SOLUSD's CME Micro SOL is reported but small — useful? | Phase 9 |
 
 ## 14. Glossary
@@ -373,3 +392,4 @@ The idea comes from 2nd Skies Trading (Chris Capre) product pages read on 27-Oct
 | v1.5 | 29 Oct 2026 | Repository made public (owner); no secrets in its history |
 | v1.6 | 29 Oct 2026 | US options source: MarketData.app chosen (§13 q4 answered, decision 9), check results in §6.1 — end-of-day SPY chain with open interest for 1 credit per expiry, IV and gamma computed by Levels; 1-year history limit on Free/Trial. No code yet |
 | v1.7 | 29 Oct 2026 | Refined for the owner: gamma lines in plain language — Price Stall, Bounce Back, Magnet, Speed Up with a shaded speed-up zone and a Mood row; Phase 1 range lines labelled Normal range / Stretched (§7.1, decision 10). COT added as Phase 9: weekly big-money bias in the table from TradingView's COT data, CFTC API as fallback (§6.2, decision 11; §13 q8–10). Phase 3 covers SPY, QQQ, GLD and BTC/ETH; Phase 5 counts how often the labels held; suggested build order 9 → 2 (SPY) → 3. No code yet |
+| v1.8 | 31 Oct 2026 | **Phase 9 built and checked**: COT row in `Levels.pine` via `TradingView/LibraryCOT/6`, on weekly bars without lookahead; matches the CFTC on XAUUSD, US500, EURUSD, GBPJPY, USDJPY, BTCUSD (§6.2.1). Words shortened to Buying / Selling under the row label Big money; report date shown as the Tuesday; arrows compare whole numbers; newest report appears when the next weekly bar opens (§6.2). §13 q9 answered |
